@@ -1,0 +1,7 @@
+# Netlify: BFV-Schnittstelle über die eigene Domain weiterleiten (kein CORS-Problem).
+# Wird beim Build nach dist/ kopiert und funktioniert auch beim Hochladen per Drag & Drop.
+/bfv-api/*  https://widget-prod.bfv.de/api/service/widget/v1/:splat  200
+/bfv-web/*  https://www.bfv.de/:splat  200
+
+# Single-Page-App: alle anderen Pfade auf index.html
+/*  /index.html  200
