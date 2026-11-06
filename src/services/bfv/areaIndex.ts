@@ -104,12 +104,12 @@ export function indexStats(index: AreaIndex) {
 
 /**
  * Grobe Schätzung der Erkundungsdauer. Annahmen: ~0,07 Vereine pro km² (Bayern), je Verein
- * ~10 BFV-Anfragen (6 parallel, ~0,4 s), dazu ~2 Vereine verorten – über OpenStreetMap
- * höchstens 1 Suche pro Sekunde.
+ * ~10 BFV-Anfragen (6 parallel, ~0,4 s), dazu ~2 Vereine verorten.
  */
 export function estimateMinutes(radiusKm: number): number {
   const clubs = Math.PI * radiusKm * radiusKm * 0.07;
-  const seconds = (clubs * 10 * 0.4) / 6 + clubs * 2 * 1.1;
+  // Verorten: ~2 Vereine je Verein im Umkreis, meist über Photon (4 parallel, ~0,5 s)
+  const seconds = (clubs * 10 * 0.4) / 6 + (clubs * 2 * 0.5) / 4;
   return Math.max(1, Math.round(seconds / 60));
 }
 

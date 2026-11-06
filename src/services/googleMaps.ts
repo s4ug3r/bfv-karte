@@ -9,7 +9,7 @@ import { config } from '../config';
 import type { LatLng } from '../types/match';
 import { readJson, writeJson } from '../utils/storage';
 import { normalizeText } from '../utils/text';
-import { nominatimSearch, townFromClubName, type OsmPlace } from './osm';
+import { openSearch, townFromClubName, type OsmPlace } from './osm';
 
 let loadPromise: Promise<void> | null = null;
 
@@ -161,7 +161,7 @@ function noteGoogleError(where: string, err: unknown) {
 /** Ortssuche bei OpenStreetMap; Fehler werden gemeldet, aber nicht geworfen. */
 async function osmSearch(query: string): Promise<OsmPlace | null | 'error'> {
   try {
-    return await nominatimSearch(query);
+    return await openSearch(query);
   } catch (err) {
     lastGoogleError = describeError(err);
     console.warn('[OpenStreetMap] Suche fehlgeschlagen:', query, err);

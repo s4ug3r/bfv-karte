@@ -1,7 +1,11 @@
 /**
- * Kostenlose Ortssuche über OpenStreetMap (Nominatim) – ohne API-Key und ohne Abrechnung.
+ * Kostenlose Ortssuche über OpenStreetMap – ohne API-Key und ohne Abrechnung.
  *
- * Nutzungsbedingungen (https://operations.osmfoundation.org/policies/nominatim/):
+ *   1. Photon (https://photon.komoot.io) – schnell, mehrere Anfragen parallel (faire Nutzung)
+ *   2. Nominatim als Reserve, falls Photon nicht erreichbar ist
+ * Jeder Ort wird pro Sitzung nur einmal gesucht (viele Vereine teilen sich einen Ort).
+ *
+ * Nominatim-Nutzungsbedingungen (https://operations.osmfoundation.org/policies/nominatim/):
  *   - höchstens 1 Anfrage pro Sekunde  → Anfragen werden hier nacheinander mit Pause gestellt
  *   - Ergebnisse cachen                → erledigt der Cache in googleMaps.ts (30 Tage)
  *   - Quellenangabe "© OpenStreetMap-Mitwirkende" → steht in der Fußzeile
@@ -87,4 +91,68 @@ export function townFromClubName(name: string): string {
     return true;
   });
   return kept.join(' ').trim();
+}
+
+// ─── Photon ────────────────────────────────────────────────────────────────
+
+const PHOTON = 'https://photon.komoot.io/api/';
+/** Bayern als bbox: minLon, minLat, maxLon, maxLat */
+const BAVARIA_BBOX = '8.97,47.27,13.84,50.57';
+const PHOTON_PARALLEL = 4;
+let photonActive = 0;
+const photonWaiting: (() => void)[] = [];
+
+async function withPhotonSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (photonActive >= PHOTON_PARALLEL) await new Promise<void>((r) => photonWaiting.push(r));
+  photonActive++;
+  try {
+    return await fn();
+  } finally {
+    photonActive--;
+    photonWaiting.shift()?.();
+  }
+}
+
+interface PhotonFeature {
+  geometry?: { coordinates?: [number, number] };
+  properties?: { name?: string; city?: string; postcode?: string; countrycode?: string; state?: string };
+}
+
+export function photonSearch(query: string): Promise<OsmPlace | null> {
+  return withPhotonSlot(async () => {
+    const params = new URLSearchParams({ q: query, limit: '3', lang: 'de', bbox: BAVARIA_BBOX });
+    const res = await fetch(`${PHOTON}?${params}`, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Photon: HTTP ${res.status}`);
+    const json = (await res.json()) as { features?: PhotonFeature[] };
+    const hit = (json.features ?? []).find((f) => !f.properties?.countrycode || f.properties.countrycode === 'DE');
+    const c = hit?.geometry?.coordinates;
+    if (!c) return null;
+    const p = hit?.properties ?? {};
+    return {
+      location: { lat: c[1], lng: c[0] },
+      address: [p.name, [p.postcode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || undefined,
+    };
+  });
+}
+
+// ─── Kombiniert, mit Ortscache ─────────────────────────────────────────────
+
+const townCache = new Map<string, Promise<OsmPlace | null>>();
+
+/** Photon, bei Fehler Nominatim. Gleiche Suchbegriffe werden zusammengelegt. */
+export function openSearch(query: string): Promise<OsmPlace | null> {
+  const key = query.trim().toLowerCase();
+  const hit = townCache.get(key);
+  if (hit) return hit;
+  const value = (async () => {
+    try {
+      return await photonSearch(query);
+    } catch (err) {
+      console.info('[OpenStreetMap] Photon nicht erreichbar, nutze Nominatim:', err);
+      return nominatimSearch(query);
+    }
+  })();
+  townCache.set(key, value);
+  value.catch(() => townCache.delete(key)); // Fehler nicht merken
+  return value;
 }
