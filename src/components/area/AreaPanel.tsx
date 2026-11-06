@@ -2,6 +2,7 @@
  * Steuerung der Umgebungserkundung: Status, Startpunkt (nur beim ersten Mal), Fortschritt.
  */
 import { useId, useState, type FormEvent } from 'react';
+import { testGoogleServices, type GoogleTestResult } from '../../services/googleMaps';
 import { config } from '../../config';
 import { estimateMinutes, indexStats, type AreaIndex } from '../../services/bfv/areaIndex';
 import type { DiscoveryProgress } from '../../services/bfv/discovery';
@@ -33,6 +34,16 @@ export function AreaPanel(p: Props) {
   const id = useId();
   const [seedInput, setSeedInput] = useState(config.bfvSeed);
   const [seedError, setSeedError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<GoogleTestResult | null>(null);
+  const [testing, setTesting] = useState(false);
+  const runTest = async () => {
+    setTesting(true);
+    try {
+      setTestResult(await testGoogleServices());
+    } finally {
+      setTesting(false);
+    }
+  };
   const stats = indexStats(p.index);
   const needsSeed = !p.hasClubsNearby;
   const minutes = estimateMinutes(p.radiusKm);
@@ -216,6 +227,26 @@ export function AreaPanel(p: Props) {
             )}
           </ul>
         </details>
+      )}
+
+      {p.googleReady && (
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+          <button type="button" className="font-medium text-bfv-700 underline" onClick={() => void runTest()} disabled={testing}>
+            {testing ? 'Teste Google…' : 'Google-Verbindung testen'}
+          </button>
+          {testResult && (
+            <ul className="mt-1.5 space-y-0.5 break-words">
+              <li>Seite: {testResult.origin}</li>
+              <li>Schlüssel: {testResult.keySuffix}</li>
+              <li className={testResult.places.startsWith('OK') ? 'text-green-700' : 'text-red-700'}>
+                Places-Suche: {testResult.places}
+              </li>
+              <li className={testResult.geocoding.startsWith('OK') ? 'text-green-700' : 'text-red-700'}>
+                Geocoding: {testResult.geocoding}
+              </li>
+            </ul>
+          )}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">

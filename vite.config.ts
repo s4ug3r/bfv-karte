@@ -26,8 +26,9 @@ const bfvProxy = {
 // https://vite.dev/config/ – vitest/config erweitert die Vite-Konfiguration um "test".
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { proxy: bfvProxy },
-  preview: { proxy: bfvProxy },
+  // host + allowedHosts: Zugriff vom Handy (WLAN) bzw. über Tailscale/Cloudflare-Tunnel erlauben
+  server: { proxy: bfvProxy, host: true, allowedHosts: ['.ts.net', '.trycloudflare.com'] },
+  preview: { proxy: bfvProxy, host: true, allowedHosts: ['.ts.net', '.trycloudflare.com'] },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

@@ -214,7 +214,7 @@ const fmtLong = new Intl.DateTimeFormat('de-DE', {
 /** "Sa." */
 export const formatWeekdayShort = (iso: string) => fmtWeekdayShort.format(new Date(iso));
 /** "07.11." */
-export const formatDayMonth = (iso: string) => `${fmtDayMonth.format(new Date(iso))}.`;
+export const formatDayMonth = (iso: string) => fmtDayMonth.format(new Date(iso)).replace(/\.?$/, ".");
 /** "15:00" */
 export const formatTime = (iso: string) => fmtTime.format(new Date(iso));
 /** "Sa., 07.11. · 15:00 Uhr" */

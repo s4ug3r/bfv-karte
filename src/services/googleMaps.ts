@@ -266,3 +266,50 @@ interface PlaceResult {
   formattedAddress?: string | null;
   displayName?: string | null;
 }
+
+// ─── Verbindungstest (Knopf "Google-Verbindung testen") ─────────────────────
+
+export interface GoogleTestResult {
+  origin: string;
+  keySuffix: string;
+  places: string;
+  geocoding: string;
+}
+
+/**
+ * Fragt Places-Textsuche und Geocoding je einmal direkt bei Google ab (ohne Cache)
+ * und gibt die Antwort im Klartext zurück – zum Vergleich lokal vs. gehostet.
+ */
+export async function testGoogleServices(): Promise<GoogleTestResult> {
+  const result: GoogleTestResult = {
+    origin: window.location.origin,
+    keySuffix: config.googleMapsApiKey ? `…${config.googleMapsApiKey.slice(-4)}` : '(kein Schlüssel)',
+    places: '',
+    geocoding: '',
+  };
+  if (!isGoogleMapsLoaded()) {
+    result.places = result.geocoding = 'Google Maps ist nicht geladen';
+    return result;
+  }
+  try {
+    const PlaceCtor = (google.maps.places as unknown as {
+      Place?: { searchByText: (req: Record<string, unknown>) => Promise<{ places: PlaceResult[] }> };
+    }).Place;
+    if (!PlaceCtor?.searchByText) throw new Error('Place.searchByText nicht verfügbar');
+    const { places } = await PlaceCtor.searchByText({
+      textQuery: 'TSV 1865 Dachau Sportplatz',
+      fields: ['displayName', 'location'],
+      maxResultCount: 1,
+    });
+    result.places = places?.[0]?.location ? `OK – gefunden: ${places[0].displayName ?? '?'}` : 'OK, aber kein Treffer';
+  } catch (err) {
+    result.places = `FEHLER – ${describeError(err)}`;
+  }
+  try {
+    const { results } = await new google.maps.Geocoder().geocode({ address: 'Dachau, Bayern' });
+    result.geocoding = results[0] ? `OK – ${results[0].formatted_address}` : 'OK, aber kein Treffer';
+  } catch (err) {
+    result.geocoding = `FEHLER – ${describeError(err)}`;
+  }
+  return result;
+}
