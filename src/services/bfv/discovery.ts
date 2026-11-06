@@ -15,7 +15,7 @@
  */
 import type { LatLng } from '../../types/match';
 import { haversineKm } from '../../utils/distance';
-import { clearLastGoogleError, findPlace, getLastGoogleError } from '../googleMaps';
+import { clearLastGoogleError, findPlace, getLastGoogleError, isUsingOsmFallback } from '../googleMaps';
 import { clubNameFromTeam } from '../providers/bfvWidgetProvider';
 import type { AreaClub, AreaIndex, DiscoveryStats } from './areaIndex';
 import { clubsInRadius, isFresh } from './areaIndex';
@@ -171,14 +171,8 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   };
 
   /** Mehrere Suchvarianten, bis Google einen Ort findet. */
-  const locateClub = async (name: string) => {
-    const variants = [`${name} Sportplatz`, name, `${clubNameFromTeam(name)} Fußball`];
-    for (const q of [...new Set(variants)]) {
-      const hit = await deps.locate(q);
-      if (hit) return hit;
-    }
-    return null;
-  };
+  // Eine Suche genügt: findPlace probiert selbst Google (Sportplatz) und OpenStreetMap (Ort) durch
+  const locateClub = (name: string) => deps.locate(`${name} Sportplatz`);
 
   /** Mannschaften eines Vereins laden und Nachbarn einsammeln. */
   const expand = async (id: string) => {
@@ -318,7 +312,9 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
 
   stats.clubsInRadius = clubsInRadius(index, center, radiusKm).length;
   stats.at = Date.now();
-  stats.googleError = opts.deps?.locate ? null : getLastGoogleError();
+  // Fehler nur melden, wenn die Verortung wirklich gescheitert ist (nicht, wenn OSM eingesprungen ist)
+  stats.googleError = opts.deps?.locate || stats.clubsLocated > 0 ? null : getLastGoogleError();
+  stats.locator = opts.deps?.locate ? undefined : isUsingOsmFallback() ? 'OpenStreetMap' : 'Google';
   index.lastRun = stats;
   console.info('[Erkundung] Ergebnis', stats);
 

@@ -1,5 +1,5 @@
 /** Sichtbare Versionsnummer – zeigt nach dem Hochladen, ob die neue Version läuft. */
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.5.0';
 
 interface Props {
   sourceLabel: string;
@@ -15,6 +15,13 @@ export function Footer({ sourceLabel, googleConsent, onRevokeGoogle }: Props) {
       <p>
         Datenquelle: <span className="font-medium text-slate-700">{sourceLabel}</span>. Ansetzungen können sich
         kurzfristig ändern – maßgeblich sind die Angaben auf bfv.de. Kein offizielles Angebot des BFV.
+      </p>
+      <p>
+        Vereinsorte teils über{' '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
+          © OpenStreetMap-Mitwirkende
+        </a>{' '}
+        (Nominatim).
       </p>
       <p>
         Datenschutz: Dein Standort wird nur nach Zustimmung abgefragt, nur im Browser verarbeitet und nicht

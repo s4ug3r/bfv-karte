@@ -9,6 +9,7 @@ import { config } from '../config';
 import type { LatLng } from '../types/match';
 import { readJson, writeJson } from '../utils/storage';
 import { normalizeText } from '../utils/text';
+import { nominatimSearch, townFromClubName, type OsmPlace } from './osm';
 
 let loadPromise: Promise<void> | null = null;
 
@@ -119,8 +120,8 @@ async function cachedLookup(
 }
 
 // ─── Fehlerdiagnose ─────────────────────────────────────────────────────────
-// Letzter Fehler von Google (z. B. "REQUEST_DENIED" oder "API not enabled") – wird in der
-// App angezeigt, damit Konfigurationsprobleme sofort sichtbar sind.
+// Letzter Fehler einer Ortssuche (Google oder OpenStreetMap) – wird in der App angezeigt,
+// damit Konfigurationsprobleme sofort sichtbar sind.
 let lastGoogleError: string | null = null;
 export const getLastGoogleError = () => lastGoogleError;
 export const clearLastGoogleError = () => {
@@ -136,27 +137,62 @@ function describeError(err: unknown): string {
 class LookupFailed extends Error {}
 
 /**
- * Wandelt eine Adresse in Koordinaten um (Google Geocoding API).
- * "Nicht gefunden" wird kurz gecacht, Fehler (z. B. fehlende Berechtigung) nie.
+ * Google-Dienste, die eine aktivierte Abrechnung brauchen (Geocoding, Places-Textsuche),
+ * werden nach dem ersten Abrechnungs-/Berechtigungsfehler für diese Sitzung übersprungen.
+ * Dann übernimmt OpenStreetMap – kostenlos und ohne Zahlungsdaten.
+ */
+let googleSearchBlocked = false;
+/** Läuft die Ortssuche gerade über OpenStreetMap statt Google? */
+export const isUsingOsmFallback = () => googleSearchBlocked;
+
+function noteGoogleError(where: string, err: unknown) {
+  const text = describeError(err);
+  lastGoogleError = `${where}: ${text}`;
+  if (/billing|request_denied|permission_denied|not authorized|not allowed|api.*not.*(enabled|activated)/i.test(text)) {
+    if (!googleSearchBlocked) {
+      console.info('[Ortssuche] Google-Suche nicht verfügbar (z. B. keine Abrechnung) – nutze OpenStreetMap.');
+    }
+    googleSearchBlocked = true;
+  } else {
+    console.warn(`[Google] ${where} fehlgeschlagen:`, err);
+  }
+}
+
+/** Ortssuche bei OpenStreetMap; Fehler werden gemeldet, aber nicht geworfen. */
+async function osmSearch(query: string): Promise<OsmPlace | null | 'error'> {
+  try {
+    return await nominatimSearch(query);
+  } catch (err) {
+    lastGoogleError = describeError(err);
+    console.warn('[OpenStreetMap] Suche fehlgeschlagen:', query, err);
+    return 'error';
+  }
+}
+
+/**
+ * Wandelt eine Adresse in Koordinaten um: Google Geocoding, sonst OpenStreetMap.
+ * "Nicht gefunden" wird kurz gecacht, Fehler nie.
  */
 export async function geocodeAddress(address: string): Promise<LatLng | null> {
   const key = normalizeText(address);
   if (!key) return null;
   const entry = await cachedLookup(`g:${key}`, async () => {
-    try {
-      const { results } = await new google.maps.Geocoder().geocode({
-        address,
-        region: 'de',
-        componentRestrictions: { country: 'DE' },
-      });
-      const loc = results[0]?.geometry.location;
-      return { p: loc ? { lat: loc.lat(), lng: loc.lng() } : null, a: results[0]?.formatted_address };
-    } catch (err) {
-      if ((err as { code?: string }).code === 'ZERO_RESULTS') return { p: null };
-      lastGoogleError = `Geocoding: ${describeError(err)}`;
-      console.warn('[Google] Geocoding fehlgeschlagen:', address, err);
-      throw err;
+    if (!googleSearchBlocked && isGoogleMapsLoaded()) {
+      try {
+        const { results } = await new google.maps.Geocoder().geocode({
+          address,
+          region: 'de',
+          componentRestrictions: { country: 'DE' },
+        });
+        const loc = results[0]?.geometry.location;
+        if (loc) return { p: { lat: loc.lat(), lng: loc.lng() }, a: results[0]?.formatted_address };
+      } catch (err) {
+        if ((err as { code?: string }).code !== 'ZERO_RESULTS') noteGoogleError('Geocoding', err);
+      }
     }
+    const osm = await osmSearch(address);
+    if (osm === 'error') throw new LookupFailed('nicht cachen');
+    return osm ? { p: osm.location, a: osm.address } : { p: null };
   });
   return entry.p;
 }
@@ -171,18 +207,21 @@ export interface FoundPlace {
 }
 
 /**
- * Sucht einen Ort per Freitext (Places API (New), Text Search), beschränkt auf Bayern –
- * z. B. "TSV 1865 Dachau Sportplatz". Fällt auf das Geocoding zurück.
+ * Sucht einen Ort per Freitext, beschränkt auf Bayern – z. B. "TSV 1865 Dachau Sportplatz".
+ *   1. Google Places (genauer Sportplatz), falls verfügbar
+ *   2. OpenStreetMap: erst der Ort aus dem Vereinsnamen ("Dachau"), sonst der ganze Text
+ * Für die Umkreissuche genügt die Ortsmitte; die Spielorte sind dann als "ohne Gewähr" markiert.
  */
 export async function findPlace(query: string): Promise<FoundPlace | null> {
   const key = normalizeText(query);
   if (!key) return null;
   const entry = await cachedLookup(`p:${key}`, async () => {
-    let failed = false;
-    const PlaceCtor = (google.maps.places as unknown as {
-      Place?: { searchByText: (req: Record<string, unknown>) => Promise<{ places: PlaceResult[] }> };
-    }).Place;
-    if (PlaceCtor?.searchByText) {
+    const PlaceCtor = isGoogleMapsLoaded()
+      ? (google.maps.places as unknown as {
+          Place?: { searchByText: (req: Record<string, unknown>) => Promise<{ places: PlaceResult[] }> };
+        }).Place
+      : undefined;
+    if (!googleSearchBlocked && PlaceCtor?.searchByText) {
       try {
         const { places } = await PlaceCtor.searchByText({
           textQuery: query,
@@ -201,20 +240,23 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
           };
         }
       } catch (err) {
-        failed = true;
-        lastGoogleError = `Places-Suche: ${describeError(err)}`;
-        console.warn('[Google] Places-Suche fehlgeschlagen:', query, err);
+        noteGoogleError('Places-Suche', err);
       }
-    } else {
-      failed = true;
-      lastGoogleError = 'Places-Suche: Place.searchByText nicht verfügbar';
     }
-    // Ersatz: Geocoding
-    const errorBefore = lastGoogleError;
-    const p = await geocodeAddress(`${query}, Bayern`);
-    if (!p && lastGoogleError !== errorBefore) failed = true;
-    if (!p && failed) throw new LookupFailed('Fehler – nicht cachen'); // nur echte Nicht-Treffer cachen
-    return { p };
+
+    // OpenStreetMap: Ort aus dem Vereinsnamen, sonst der Suchtext selbst
+    const town = townFromClubName(query);
+    let hadError = false;
+    for (const q of [...new Set([town, query].filter(Boolean))]) {
+      const osm = await osmSearch(q);
+      if (osm === 'error') {
+        hadError = true;
+        continue;
+      }
+      if (osm) return { p: osm.location, a: osm.address };
+    }
+    if (hadError) throw new LookupFailed('nicht cachen');
+    return { p: null };
   });
   return entry.p ? { location: entry.p, address: entry.a, name: entry.n } : null;
 }

@@ -119,7 +119,7 @@ export function AreaPanel(p: Props) {
           {!p.googleReady ? (
             <div className="space-y-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
               <p>
-                Um die Vereine in deiner Umgebung zu finden und auf der Karte zu verorten, braucht die App Google Maps.
+                Für die Karte und die Erkundung braucht die App Google Maps.
               </p>
               <button type="button" className={buttonPrimary} onClick={p.onEnableGoogle}>
                 Google Maps laden
@@ -204,8 +204,9 @@ export function AreaPanel(p: Props) {
               Gegner ohne Vereins-ID: {p.index.lastRun.opponentsWithoutClubId} · nachgeschlagen:{' '}
               {p.index.lastRun.opponentsResolvedViaTeam}
             </li>
+            {p.index.lastRun.locator && <li>Ortssuche über: {p.index.lastRun.locator}</li>}
             {p.index.lastRun.googleError && (
-              <li className="font-medium text-red-700">Google-Fehler: {p.index.lastRun.googleError}</li>
+              <li className="font-medium text-red-700">Fehler bei der Ortssuche: {p.index.lastRun.googleError}</li>
             )}
           </ul>
         </details>

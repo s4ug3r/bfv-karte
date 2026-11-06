@@ -47,6 +47,8 @@ export interface DiscoveryStats {
   clubsInRadius: number;
   /** Letzter Google-Fehler während der Erkundung (z. B. fehlende API-Freigabe) */
   googleError?: string | null;
+  /** Womit die Vereine verortet wurden */
+  locator?: 'Google' | 'OpenStreetMap';
 }
 
 export interface CoveredArea extends LatLng {
@@ -101,12 +103,14 @@ export function indexStats(index: AreaIndex) {
 }
 
 /**
- * Grobe Schätzung der Erkundungsdauer. Annahme: ~0,1 Vereine pro km² (Oberbayern, ländlich
- * bis städtisch), je Verein ~10 Anfragen bei ~6 parallelen Anfragen à ~0,4 s.
+ * Grobe Schätzung der Erkundungsdauer. Annahmen: ~0,07 Vereine pro km² (Bayern), je Verein
+ * ~10 BFV-Anfragen (6 parallel, ~0,4 s), dazu ~2 Vereine verorten – über OpenStreetMap
+ * höchstens 1 Suche pro Sekunde.
  */
 export function estimateMinutes(radiusKm: number): number {
-  const clubs = Math.PI * radiusKm * radiusKm * 0.1;
-  return Math.max(1, Math.round((clubs * 10 * 0.4) / 6 / 60));
+  const clubs = Math.PI * radiusKm * radiusKm * 0.07;
+  const seconds = (clubs * 10 * 0.4) / 6 + clubs * 2 * 1.1;
+  return Math.max(1, Math.round(seconds / 60));
 }
 
 export { isFresh };
