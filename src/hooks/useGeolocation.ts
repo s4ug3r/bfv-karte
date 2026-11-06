@@ -9,7 +9,7 @@ const ERROR_MESSAGES: Record<number, string> = {
 
 /**
  * Kapselt die Browser-Geolocation-API. Wird erst nach ausdrücklicher Zustimmung im
- * Dialog aufgerufen; der Standort wird nicht gespeichert und nur im Browser verwendet.
+ * Dialog aufgerufen; der Standort bleibt im Browser (zuletzt gewählter Standort wird lokal gespeichert).
  */
 export function useGeolocation() {
   const [locating, setLocating] = useState(false);

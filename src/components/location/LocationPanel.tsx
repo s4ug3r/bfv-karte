@@ -44,7 +44,7 @@ export function LocationPanel(props: Props) {
         <span className="min-w-0 flex-1">
           <span className="sr-only">Aktueller Standort: </span>
           <span className="font-medium break-words">{location.label}</span>
-          {location.source === 'geolocation' && <span className="text-bfv-700"> · per GPS, nicht gespeichert</span>}
+          {location.source === 'geolocation' && <span className="text-bfv-700"> (per GPS)</span>}
         </span>
         {location.source !== 'default' && (
           <button

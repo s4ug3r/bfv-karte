@@ -280,7 +280,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   };
 
   // ─── Startpunkte ─────────────────────────────────────────────────────────
-  step = 'Suche Startpunkt…';
+  step = 'Suche Startpunkt und lade Ortsverzeichnis…';
   report();
 
   // Bereits bekannte Vereine im Umkreis

@@ -14,8 +14,8 @@ interface Props {
 /** Trefferzahl ("23 Spiele im Umkreis von 20 km gefunden") und Umschalter Karte/Liste. */
 export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewChange }: Props) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="flex items-baseline gap-2 text-sm text-slate-600" aria-live="polite">
+    <div className="flex flex-col gap-2.5">
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-slate-600" aria-live="polite">
         {loading ? (
           <>
             <Spinner className="text-bfv-700" /> Spiele werden gesucht…
@@ -30,7 +30,7 @@ export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewCh
           </>
         )}
       </p>
-      <div className="w-full sm:w-auto sm:min-w-[260px]">
+      <div className="w-full">
         <Segmented<ViewMode>
           label="Ansicht"
           size="sm"

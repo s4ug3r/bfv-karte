@@ -22,6 +22,7 @@ Weitere Befehle:
 |---|---|
 | `npm run build` | Produktions-Build nach `dist/` (ohne Typprüfung, damit Deployments robust sind) |
 | `npm run check` | Typprüfung + Unit-Tests |
+| `npm run places` | Ortsverzeichnis Bayern neu von OpenStreetMap laden (`public/data/orte-bayern.csv`; passiert beim Build automatisch, höchstens wöchentlich) |
 | `npm run preview` | Produktions-Build lokal ansehen |
 | `npm test` | Unit-Tests (Entfernung, Zeitzonen, Klassifizierung, Duplikate, Normalisierung, BFV-Links/-Spiele, Umgebungserkundung) |
 | `npm run typecheck` | Nur TypeScript prüfen |

@@ -10,7 +10,7 @@ import type { LatLng } from '../types/match';
 import { readJson, writeJson } from '../utils/storage';
 import { normalizeText } from '../utils/text';
 import { openSearch, townFromClubName, type OsmPlace } from './osm';
-import { getPlaceBias, loadPlaceIndex, lookupPlace } from './placeIndex';
+import { getPlaceBias, lookupPlace, placeIndexWithin } from './placeIndex';
 
 let loadPromise: Promise<void> | null = null;
 
@@ -247,7 +247,7 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
 
     // OpenStreetMap-Ortsverzeichnis: alle Orte Bayerns, einmal geladen – keine Anfrage pro Verein
     const town = townFromClubName(query);
-    const places = await loadPlaceIndex();
+    const places = await placeIndexWithin(3000);
     if (places) {
       const hit = lookupPlace(places, town || query, getPlaceBias());
       if (hit) return { p: hit, a: town || undefined };
@@ -263,7 +263,8 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
       }
       if (osm) return { p: osm.location, a: osm.address };
     }
-    if (hadError) throw new LookupFailed('nicht cachen');
+    // Ohne Ortsverzeichnis kein endgültiges "nicht gefunden" merken
+    if (hadError || !places) throw new LookupFailed('nicht cachen');
     return { p: null };
   });
   return entry.p ? { location: entry.p, address: entry.a, name: entry.n } : null;

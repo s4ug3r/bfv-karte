@@ -1,5 +1,5 @@
 /** Sichtbare Versionsnummer – zeigt nach dem Hochladen, ob die neue Version läuft. */
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.3.0';
 
 interface Props {
   sourceLabel: string;
@@ -24,8 +24,8 @@ export function Footer({ sourceLabel, googleConsent, onRevokeGoogle }: Props) {
         (Photon/Nominatim).
       </p>
       <p>
-        Datenschutz: Dein Standort wird nur nach Zustimmung abgefragt, nur im Browser verarbeitet und nicht
-        gespeichert. Filter und Zwischenspeicher (Spiele, Adressen) liegen lokal in deinem Browser.
+        Datenschutz: Dein GPS-Standort wird nur nach Zustimmung abgefragt. Zuletzt gewählter Standort, Filter,
+        Vereins-Link und Zwischenspeicher liegen nur lokal in deinem Browser.
         {googleConsent && (
           <>
             {' '}

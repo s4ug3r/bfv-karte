@@ -110,9 +110,25 @@ export function loadPlaceIndex(): Promise<PlaceIndex | null> {
       return index;
     }
 
+    // 1. Beim Build erzeugte Datei von der eigenen Seite – schnell, kein fremder Dienst
+    try {
+      const res = await fetch('/data/orte-bayern.csv');
+      if (res.ok) {
+        const index = parsePlacesCsv(await res.text());
+        if (index.size > 1000) {
+          console.info(`[Ortsverzeichnis] ${index.size} Ortsnamen von der eigenen Seite geladen`);
+          return index;
+        }
+      }
+    } catch {
+      /* Datei fehlt – weiter mit Overpass */
+    }
+
+    // 2. Direkt von Overpass (langsamer)
     for (const endpoint of OVERPASS_ENDPOINTS) {
       try {
         const res = await fetch(endpoint, {
+          signal: AbortSignal.timeout(60_000),
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(QUERY)}`,
@@ -146,3 +162,8 @@ export const setPlaceBias = (center: LatLng | undefined) => {
   bias = center;
 };
 export const getPlaceBias = () => bias;
+
+/** Ortsverzeichnis, aber höchstens `ms` darauf warten – sonst null (Suche läuft dann einzeln weiter). */
+export function placeIndexWithin(ms: number): Promise<PlaceIndex | null> {
+  return Promise.race([loadPlaceIndex(), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+}

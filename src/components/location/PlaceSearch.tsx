@@ -3,7 +3,9 @@
  * Das ältere google.maps.places.Autocomplete ist für neue Google-Cloud-Projekte nicht mehr
  * verfügbar, daher wird das Web-Component-basierte Element verwendet.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { searchTownFree } from '../../services/osm';
+import { IconSearch, Spinner, inputClass } from '../ui';
 import { config } from '../../config';
 import type { SelectedLocation } from '../../types/filters';
 
@@ -24,14 +26,19 @@ export function PlaceSearch({ onSelect }: Props) {
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const [error, setError] = useState<string | null>(null);
+  /** true, wenn die Google-Vorschläge nicht funktionieren → einfaches Suchfeld über OpenStreetMap */
+  const [fallback, setFallback] = useState(false);
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
+    if (fallback) return;
     const host = hostRef.current;
     const places = google.maps.places as unknown as {
       PlaceAutocompleteElement?: new (opts: Record<string, unknown>) => HTMLElement;
     };
     if (!host || !places.PlaceAutocompleteElement) {
-      setError('Die Ortssuche ist in dieser Google-Maps-Version nicht verfügbar.');
+      setFallback(true);
       return;
     }
 
@@ -51,7 +58,7 @@ export function PlaceSearch({ onSelect }: Props) {
         element = new places.PlaceAutocompleteElement({ includedRegionCodes: ['de'] });
       } catch (err2) {
         console.error('[Ortssuche] PlaceAutocompleteElement konnte nicht erstellt werden:', err2);
-        setError('Die Ortssuche konnte nicht geladen werden. Ist die „Places API (New)“ im Google-Projekt aktiviert?');
+        setFallback(true);
         return;
       }
     }
@@ -88,9 +95,10 @@ export function PlaceSearch({ onSelect }: Props) {
       const place = (e as Event & { place?: PlaceLike }).place;
       if (place) void handlePlace(place);
     };
+    // Google-Vorschläge nicht verfügbar (z. B. Kontingent aufgebraucht) → eigenes Suchfeld
     const onError = (e: Event) => {
-      console.error('[Ortssuche] gmp-error:', e);
-      setError('Die Ortssuche ist gerade nicht verfügbar. Prüfe, ob die „Places API (New)“ aktiviert ist und dein API-Key diese Website erlaubt.');
+      console.warn('[Ortssuche] Google-Vorschläge nicht verfügbar, nutze OpenStreetMap:', e);
+      setFallback(true);
     };
 
     element.addEventListener('gmp-select', onSelectEvent);
@@ -104,7 +112,47 @@ export function PlaceSearch({ onSelect }: Props) {
       element.removeEventListener('gmp-error', onError);
       element.remove();
     };
-  }, []);
+  }, [fallback]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSearching(true);
+    try {
+      const hit = await searchTownFree(query);
+      if (!hit) {
+        setError('Ort nicht gefunden. Versuch es mit dem Ortsnamen oder einer bayerischen Postleitzahl.');
+        return;
+      }
+      onSelectRef.current({ lat: hit.location.lat, lng: hit.location.lng, label: hit.label, source: 'search' });
+    } catch {
+      setError('Die Ortssuche ist gerade nicht erreichbar. Bitte später erneut versuchen.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  if (fallback) {
+    return (
+      <form onSubmit={submit}>
+        <div className="relative">
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            id="place-search"
+            className={`${inputClass} pl-9 pr-9`}
+            placeholder="Ort oder PLZ eingeben und Enter drücken"
+            aria-label="Standort suchen"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            enterKeyHint="search"
+            autoComplete="off"
+          />
+          {searching && <Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-bfv-700" />}
+        </div>
+        {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      </form>
+    );
+  }
 
   return (
     <div>

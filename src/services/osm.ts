@@ -156,3 +156,19 @@ export function openSearch(query: string): Promise<OsmPlace | null> {
   value.catch(() => townCache.delete(key)); // Fehler nicht merken
   return value;
 }
+
+// ─── Freie Ortssuche ohne Google (Ersatz für die Google-Vorschläge) ─────────
+
+/** Sucht einen Ort/PLZ in Bayern über OpenStreetMap. */
+export async function searchTownFree(query: string): Promise<{ location: LatLng; label: string } | null> {
+  const q = query.trim();
+  if (!q) return null;
+  const { placeIndexWithin, lookupPlace } = await import('./placeIndex');
+  if (!/\d/.test(q)) {
+    const index = await placeIndexWithin(4000);
+    const hit = index ? lookupPlace(index, q) : null;
+    if (hit) return { location: hit, label: q };
+  }
+  const found = await openSearch(q);
+  return found ? { location: found.location, label: found.address ?? q } : null;
+}

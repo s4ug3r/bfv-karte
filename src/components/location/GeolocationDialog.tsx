@@ -41,7 +41,7 @@ export function GeolocationDialog({ open, googleActive, onConfirm, onCancel }: P
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-slate-600">
           <li>• Dein Standort wird nur in diesem Browser genutzt, um Entfernungen zu berechnen.</li>
-          <li>• Er wird nicht gespeichert und nicht an unsere Datenquelle übermittelt.</li>
+          <li>• Er wird nur in diesem Browser gespeichert, damit er beim nächsten Besuch wieder da ist, und nicht an den BFV übermittelt.</li>
           {googleActive && (
             <li>• Die Karte wird auf deinen Standort zentriert; dabei erhält Google den Kartenausschnitt.</li>
           )}

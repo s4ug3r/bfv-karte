@@ -46,14 +46,32 @@ function sanitizeFilters(stored: unknown): Filters {
   };
 }
 
+/** Gespeicherten Standort prüfen; bei Unsinn zurück auf Dachau. */
+function sanitizeLocation(stored: unknown): SelectedLocation {
+  const s = (stored ?? {}) as Partial<SelectedLocation>;
+  const valid =
+    typeof s.lat === 'number' &&
+    typeof s.lng === 'number' &&
+    Math.abs(s.lat) <= 90 &&
+    Math.abs(s.lng) <= 180 &&
+    typeof s.label === 'string';
+  if (!valid) return config.defaultLocation;
+  const source = s.source === 'search' || s.source === 'geolocation' ? s.source : 'default';
+  return { lat: s.lat!, lng: s.lng!, label: s.label!, source };
+}
+
 const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
 
 export default function App() {
   // ─── Zustand ─────────────────────────────────────────────────────────────
   const [storedFilters, setStoredFilters] = usePersistentState<Filters>('bfv.filters.v1', DEFAULT_FILTERS, sanitizeFilters);
   const filters = storedFilters;
-  // Standort wird aus Datenschutzgründen nicht gespeichert.
-  const [location, setLocation] = useState<SelectedLocation>(config.defaultLocation);
+  // Zuletzt gewählter Standort – nur in diesem Browser gespeichert, damit er beim nächsten Besuch da ist.
+  const [location, setLocation] = usePersistentState<SelectedLocation>(
+    'bfv.location.v1',
+    config.defaultLocation,
+    sanitizeLocation,
+  );
   const [googleConsent, setGoogleConsent] = usePersistentState<boolean>('bfv.consent.googleMaps', false, (v) => v === true);
   const [view, setView] = useState<ViewMode>('beides');
   const [filtersOpen, setFiltersOpen] = useState(false);

@@ -3,6 +3,7 @@
  */
 import { useId, useState, type FormEvent } from 'react';
 import { config } from '../../config';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { estimateMinutes, indexStats, type AreaIndex } from '../../services/bfv/areaIndex';
 import type { DiscoveryProgress } from '../../services/bfv/discovery';
 import { parseSourceInput, type ParsedSourceInput } from '../../services/bfv/sources';
@@ -29,7 +30,10 @@ const formatDate = (ts: number) =>
 
 export function AreaPanel(p: Props) {
   const id = useId();
-  const [seedInput, setSeedInput] = useState(config.bfvSeed);
+  // Zuletzt eingegebener Vereins-Link bleibt gespeichert
+  const [seedInput, setSeedInput] = usePersistentState<string>('bfv.seed.v1', config.bfvSeed, (v) =>
+    typeof v === 'string' ? v : config.bfvSeed,
+  );
   const [seedError, setSeedError] = useState<string | null>(null);
   const stats = indexStats(p.index);
   const needsSeed = !p.hasClubsNearby;

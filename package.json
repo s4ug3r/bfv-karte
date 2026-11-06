@@ -1,17 +1,18 @@
 {
   "name": "bfv-spiele-in-der-naehe",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.3.0",
   "type": "module",
   "description": "Fußballspiele des Bayerischen Fußball-Verbands (BFV) in der Nähe auf einer Google-Maps-Karte",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/fetch-places.mjs && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc --noEmit && vitest run"
+    "check": "tsc --noEmit && vitest run",
+    "places": "node scripts/fetch-places.mjs --force"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.8",
