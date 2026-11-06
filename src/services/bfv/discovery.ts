@@ -34,7 +34,7 @@ const EDGE_MARGIN_KM = 3;
 /** Sicherheitsgrenze gegen ausufernde Erkundungen. */
 const MAX_CLUBS = 800;
 /** Parallel erkundete Vereine (je Verein zusätzlich 2 parallele Spielplan-Abfragen) – schont den BFV. */
-const CONCURRENCY = 3;
+const CONCURRENCY = 4;
 
 export interface DiscoveryProgress {
   /** erkundete Vereine */
@@ -102,6 +102,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   // Arbeitskopie – das gespeicherte Verzeichnis wird erst über Checkpoints/Ergebnis ersetzt
   const index: AreaIndex = structuredClone(opts.index);
   const now = Date.now();
+  const startedAt = now;
   const limitKm = radiusKm + EDGE_MARGIN_KM;
 
   const queue: string[] = [];
@@ -151,16 +152,23 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   /** Ist der Name nur eine ID oder leer? */
   const hasRealName = (c: AreaClub) => !!c.name && c.name !== c.id;
 
+  /** In diesem Durchlauf schon gesucht – nie zweimal suchen, auch wenn nicht gefunden */
+  const attempted = new Set<string>();
+
   /** Verein verorten (einmal pro 30 Tage) und ggf. zur Erkundung vormerken. */
   const consider = async (id: string, nameGuess: string, force = false) => {
     const c = club(id, nameGuess);
-    // Nicht gefundene Vereine bei jeder Erkundung erneut suchen (z. B. nach behobenem Google-Fehler)
-    if (c.location === undefined || c.location === null || !isFresh(c.locatedAt, now)) {
+    const needsLocation = c.location === undefined || c.location === null || !isFresh(c.locatedAt, now);
+    if (needsLocation && !attempted.has(id)) {
+      attempted.add(id);
       throwIfAborted(signal);
-      const officialName = await deps.fetchClubName(id, signal);
-      if (officialName) c.name = officialName;
-      else if (nameGuess && !hasRealName(c)) c.name = nameGuess;
-      const place = hasRealName(c) ? await locateClub(c.name) : null;
+      // Name aus dem Spielplan genügt für die Ortssuche; offizieller Name nur, wenn keiner bekannt ist
+      if (nameGuess && !hasRealName(c)) c.name = nameGuess;
+      if (!hasRealName(c)) {
+        const officialName = await timed('bfv', () => deps.fetchClubName(id, signal));
+        if (officialName) c.name = officialName;
+      }
+      const place = hasRealName(c) ? await timed('locate', () => locateClub(c.name)) : null;
       c.location = place?.location ?? null;
       c.address = place?.address;
       c.locatedAt = Date.now();
@@ -169,6 +177,18 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
     }
     enqueue(c, force);
   };
+
+  // ─── Zeitmessung (für "Details zur letzten Erkundung") ───────────────────
+  const timing = { bfv: { n: 0, ms: 0 }, locate: { n: 0, ms: 0 } };
+  async function timed<T>(kind: 'bfv' | 'locate', fn: () => Promise<T>): Promise<T> {
+    const t0 = performance.now();
+    try {
+      return await fn();
+    } finally {
+      timing[kind].n++;
+      timing[kind].ms += performance.now() - t0;
+    }
+  }
 
   /** Mehrere Suchvarianten, bis Google einen Ort findet. */
   // Eine Suche genügt: findPlace probiert selbst Google (Sportplatz) und OpenStreetMap (Ort) durch
@@ -181,7 +201,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
     report();
 
     if (!isFresh(c.expandedAt, now) || !c.teams?.length) {
-      const fromPage = await deps.fetchClubTeamIds(id, signal);
+      const fromPage = await timed('bfv', () => deps.fetchClubTeamIds(id, signal));
       const known = new Map<string, string>(c.teams?.map((t) => [t.id, t.name ?? ''] as [string, string]) ?? []);
       for (const [tid, tname] of seenTeams.get(id) ?? []) if (!known.has(tid)) known.set(tid, tname);
       for (const tid of fromPage) if (!known.has(tid)) known.set(tid, '');
@@ -190,10 +210,10 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
       const neighbors = new Map<string, string>();
 
       const onPage = new Set(fromPage);
-      await pool([...known.keys()], 2, async (tid) => {
+      await pool([...known.keys()], 3, async (tid) => {
         throwIfAborted(signal);
         try {
-          const { team, matches } = await deps.fetchTeamMatches(tid, signal);
+          const { team, matches } = await timed('bfv', () => deps.fetchTeamMatches(tid, signal));
           stats.teamsLoaded++;
           stats.matchesSeen += matches.length;
           // Mannschaften, die nur aus fremden Spielplänen bekannt sind, müssen zum Verein gehören.
@@ -212,7 +232,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
       const pending = [...teamsWithoutClub];
       teamsWithoutClub.clear();
       await pool(pending, 3, async ([teamId, teamName]) => {
-        const found = await deps.fetchClubForTeam(teamId, signal);
+        const found = await timed('bfv', () => deps.fetchClubForTeam(teamId, signal));
         if (!found || found.id === id) return;
         stats.opponentsResolvedViaTeam++;
         if (!neighbors.has(found.id)) neighbors.set(found.id, found.name || clubNameFromTeam(teamName));
@@ -237,7 +257,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
     done++;
     stats.clubsExpanded++;
     report();
-    if (done % 10 === 0) opts.onCheckpoint?.(index);
+    if (done % 5 === 0) opts.onCheckpoint?.(index); // Zwischenstand → Spiele erscheinen schon währenddessen
   };
 
   /**
@@ -304,14 +324,35 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   }
 
   // ─── Breitensuche ────────────────────────────────────────────────────────
-  while (queue.length > 0) {
-    throwIfAborted(signal);
-    const batch = queue.splice(0, CONCURRENCY);
-    await Promise.all(batch.map(expand));
-  }
+  // Durchgehende Arbeiter statt Gruppen: Jeder nimmt sich den nächsten Verein, sobald er frei ist.
+  let active = 0;
+  await Promise.all(
+    Array.from({ length: CONCURRENCY }, async () => {
+      for (;;) {
+        throwIfAborted(signal);
+        const id = queue.shift();
+        if (id === undefined) {
+          if (active === 0) return; // nichts mehr zu tun und niemand findet noch Nachbarn
+          await new Promise((r) => setTimeout(r, 40));
+          continue;
+        }
+        active++;
+        try {
+          await expand(id);
+        } finally {
+          active--;
+        }
+      }
+    }),
+  );
 
   stats.clubsInRadius = clubsInRadius(index, center, radiusKm).length;
   stats.at = Date.now();
+  stats.durationSec = Math.round((Date.now() - startedAt) / 1000);
+  stats.bfvAvgMs = timing.bfv.n ? Math.round(timing.bfv.ms / timing.bfv.n) : 0;
+  stats.bfvRequests = timing.bfv.n;
+  stats.locateAvgMs = timing.locate.n ? Math.round(timing.locate.ms / timing.locate.n) : 0;
+  stats.locateRequests = timing.locate.n;
   // Fehler nur melden, wenn die Verortung wirklich gescheitert ist (nicht, wenn OSM eingesprungen ist)
   stats.googleError = opts.deps?.locate || stats.clubsLocated > 0 ? null : getLastGoogleError();
   stats.locator = opts.deps?.locate ? undefined : isUsingOsmFallback() ? 'OpenStreetMap' : 'Google';

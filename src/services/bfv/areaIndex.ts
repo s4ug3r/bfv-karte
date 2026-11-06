@@ -49,6 +49,11 @@ export interface DiscoveryStats {
   googleError?: string | null;
   /** Womit die Vereine verortet wurden */
   locator?: 'Google' | 'OpenStreetMap';
+  durationSec?: number;
+  bfvRequests?: number;
+  bfvAvgMs?: number;
+  locateRequests?: number;
+  locateAvgMs?: number;
 }
 
 export interface CoveredArea extends LatLng {

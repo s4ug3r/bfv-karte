@@ -41,7 +41,11 @@ export function useAreaDiscovery() {
           seed,
           signal: controller.signal,
           onProgress: setProgress,
-          onCheckpoint: (partial) => saveAreaIndex(partial), // Zwischenstand sichern
+          // Zwischenstand sichern und gleich anzeigen – Spiele erscheinen schon während der Erkundung
+          onCheckpoint: (partial) => {
+            saveAreaIndex(partial);
+            setIndex({ ...structuredClone(partial), updatedAt: Date.now() });
+          },
         });
         saveAreaIndex(result);
         setIndex(result);

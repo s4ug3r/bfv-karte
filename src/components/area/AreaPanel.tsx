@@ -205,6 +205,12 @@ export function AreaPanel(p: Props) {
               {p.index.lastRun.opponentsResolvedViaTeam}
             </li>
             {p.index.lastRun.locator && <li>Ortssuche über: {p.index.lastRun.locator}</li>}
+            {p.index.lastRun.durationSec !== undefined && (
+              <li>
+                Dauer: {p.index.lastRun.durationSec} s · BFV: {p.index.lastRun.bfvRequests} Anfragen à Ø{' '}
+                {p.index.lastRun.bfvAvgMs} ms · Ortssuche: {p.index.lastRun.locateRequests} à Ø {p.index.lastRun.locateAvgMs} ms
+              </li>
+            )}
             {p.index.lastRun.googleError && (
               <li className="font-medium text-red-700">Fehler bei der Ortssuche: {p.index.lastRun.googleError}</li>
             )}
