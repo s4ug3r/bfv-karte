@@ -35,11 +35,26 @@ export function PlaceSearch({ onSelect }: Props) {
       return;
     }
 
-    const element = new places.PlaceAutocompleteElement({
-      includedRegionCodes: ['de'],
-      // Ergebnisse rund um Bayern bevorzugen
-      locationBias: { center: config.defaultLocation, radius: 50_000 },
-    });
+    // Google prüft Koordinaten streng: nur { lat, lng } übergeben, keine weiteren Felder
+    // (config.defaultLocation enthält zusätzlich label/source → "unknown property"-Fehler).
+    const { lat, lng } = config.defaultLocation;
+    let element: HTMLElement;
+    try {
+      element = new places.PlaceAutocompleteElement({
+        includedRegionCodes: ['de'],
+        // Ergebnisse rund um Bayern bevorzugen
+        locationBias: { center: { lat, lng }, radius: 50_000 },
+      });
+    } catch (err) {
+      console.warn('[Ortssuche] Mit Ortsbezug fehlgeschlagen, versuche ohne:', err);
+      try {
+        element = new places.PlaceAutocompleteElement({ includedRegionCodes: ['de'] });
+      } catch (err2) {
+        console.error('[Ortssuche] PlaceAutocompleteElement konnte nicht erstellt werden:', err2);
+        setError('Die Ortssuche konnte nicht geladen werden. Ist die „Places API (New)“ im Google-Projekt aktiviert?');
+        return;
+      }
+    }
     element.setAttribute('placeholder', 'Ort, Adresse oder PLZ suchen');
     element.setAttribute('aria-label', 'Standort suchen');
     element.id = 'place-search';
@@ -58,7 +73,8 @@ export function PlaceSearch({ onSelect }: Props) {
           label: place.formattedAddress || place.displayName || 'Ausgewählter Ort',
           source: 'search',
         });
-      } catch {
+      } catch (err) {
+        console.error('[Ortssuche] Ort konnte nicht geladen werden:', err);
         setError('Der Ort konnte nicht geladen werden. Bitte versuche es erneut.');
       }
     };
@@ -72,7 +88,10 @@ export function PlaceSearch({ onSelect }: Props) {
       const place = (e as Event & { place?: PlaceLike }).place;
       if (place) void handlePlace(place);
     };
-    const onError = () => setError('Die Ortssuche ist gerade nicht verfügbar (Places API aktiviert?).');
+    const onError = (e: Event) => {
+      console.error('[Ortssuche] gmp-error:', e);
+      setError('Die Ortssuche ist gerade nicht verfügbar. Prüfe, ob die „Places API (New)“ aktiviert ist und dein API-Key diese Website erlaubt.');
+    };
 
     element.addEventListener('gmp-select', onSelectEvent);
     element.addEventListener('gmp-placeselect', onLegacyEvent);
