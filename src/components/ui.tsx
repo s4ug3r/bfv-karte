@@ -119,6 +119,6 @@ export const buttonPrimary =
 export const buttonSecondary =
   'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 disabled:cursor-not-allowed disabled:opacity-50';
 
-/** Hauptaktion einer Seite – Flutlicht-Gelb, nur sparsam einsetzen. */
+/** Hauptaktion einer Seite – groß, in BFV-Blau. */
 export const buttonHighlight =
-  'inline-flex items-center justify-center gap-2 rounded-xl bg-flutlicht px-4 py-3 font-display text-lg font-semibold tracking-wide text-bfv-950 shadow-sm transition hover:bg-flutlicht-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center gap-2 rounded-xl bg-bfv-700 px-4 py-3 font-display text-lg font-semibold tracking-wide text-white shadow-sm transition hover:bg-bfv-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';

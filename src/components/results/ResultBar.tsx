@@ -22,7 +22,7 @@ export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewCh
           </>
         ) : (
           <>
-            <span className="font-display text-3xl font-bold leading-none text-bfv-950">
+            <span className="font-display text-3xl font-bold leading-none text-bfv-700">
               {count} {count === 1 ? 'Spiel' : 'Spiele'}
             </span>
             <span>im Umkreis von {radiusKm} km gefunden</span>

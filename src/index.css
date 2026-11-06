@@ -1,21 +1,19 @@
 @import 'tailwindcss';
 
 /*
- * Farbwelt "Spieltag": Rasengrün mit Kreideweiß, Flutlicht-Gelb nur für die wichtigste Aktion.
- * Die Token heißen weiter bfv-*, damit alle Komponenten die Palette automatisch übernehmen.
+ * Farbwelt nach dem BFV-Logo: BFV-Blau #144E9C, Rauten-Hellblau #648ABC, Weiß.
  * Kategorie-Farben der Marker (blau/grün/grau) laut Vorgabe in utils/classify.ts.
  */
 @theme {
-  --color-bfv-50: #eef5f0;
-  --color-bfv-100: #dcebe2;
-  --color-bfv-600: #23805a;
-  --color-bfv-700: #1b6446;
-  --color-bfv-800: #16503a;
-  --color-bfv-900: #103b27;
-  --color-bfv-950: #0b2a1c;
-  --color-kreide: #f4f6f2;
-  --color-flutlicht: #f5c518;
-  --color-flutlicht-dark: #d9a90b;
+  --color-bfv-50: #eef3fa;
+  --color-bfv-100: #dce6f4;
+  --color-bfv-600: #1a5cb5;
+  --color-bfv-700: #144e9c;
+  --color-bfv-800: #103f7f;
+  --color-bfv-900: #0c3063;
+  --color-bfv-950: #08214a;
+  --color-raute: #648abc;
+  --color-kreide: #f3f6fa;
   --font-sans: 'Barlow', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
 }

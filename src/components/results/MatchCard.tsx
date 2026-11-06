@@ -23,16 +23,16 @@ export const MatchCard = memo(function MatchCard({ match, origin, mapAvailable, 
   const color = CATEGORY_COLOR[match.category];
   return (
     <article
-      className={`flex overflow-hidden rounded-2xl bg-white shadow-[0_1px_0_rgb(16_59_39/0.08)] ring-1 transition-shadow
-        ${active ? 'ring-2 ring-bfv-700' : 'ring-bfv-950/8 hover:ring-bfv-950/20'}`}
+      className={`flex overflow-hidden rounded-2xl bg-white shadow-[0_1px_0_rgb(8_33_74/0.08)] ring-1 transition-shadow
+        ${active ? 'ring-2 ring-raute' : 'ring-bfv-950/8 hover:ring-bfv-950/20'}`}
       aria-label={`${match.homeTeam} gegen ${match.awayTeam}`}
     >
       {/* Anzeigetafel */}
-      <div className="flex w-[4.75rem] shrink-0 flex-col items-center justify-center bg-bfv-950 px-1 py-3 text-center text-white">
-        <span className="text-[11px] font-medium text-bfv-100/70">
+      <div className="flex w-[4.75rem] shrink-0 flex-col items-center justify-center bg-bfv-700 px-1 py-3 text-center text-white">
+        <span className="text-[11px] font-medium text-bfv-100/80">
           {formatWeekdayShort(match.kickoff)} {formatDayMonth(match.kickoff)}
         </span>
-        <span className="font-display text-[26px] font-semibold leading-none tabular-nums text-flutlicht">
+        <span className="font-display text-[26px] font-semibold leading-none tabular-nums text-white">
           {formatTime(match.kickoff)}
         </span>
       </div>
