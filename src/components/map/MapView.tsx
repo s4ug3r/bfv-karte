@@ -56,6 +56,8 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
   const locationRef = useRef(location);
   matchesRef.current = matches;
   locationRef.current = location;
+  /** Nur { lat, lng } – Google lehnt Objekte mit Zusatzfeldern (label, source) teils ab. */
+  const center = { lat: location.lat, lng: location.lng };
 
   /** Öffnet das InfoWindow an der Markerposition (funktioniert auch für geclusterte Marker). */
   const openInfo = (match: MatchWithDistance) => {
@@ -63,7 +65,7 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
     const info = infoRef.current;
     const pos = positionsRef.current.get(match.id) ?? match.venue.location;
     if (!map || !info) return;
-    info.setContent(createInfoWindowContent(match, locationRef.current));
+    info.setContent(createInfoWindowContent(match, { lat: locationRef.current.lat, lng: locationRef.current.lng }));
     info.setPosition(pos);
     info.open({ map });
     openIdRef.current = match.id;
@@ -73,7 +75,7 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new google.maps.Map(containerRef.current, {
-      center: location,
+      center,
       zoom: 11,
       mapId: config.googleMapsMapId,
       gestureHandling: 'greedy',
@@ -119,7 +121,7 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
     const circle = circleRef.current;
     if (!map || !circle) return;
 
-    circle.setCenter(location);
+    circle.setCenter(center);
     circle.setRadius(radiusKm * 1000);
 
     if (!centerMarkerRef.current) {
@@ -134,7 +136,7 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
         zIndex: 2000,
       });
     }
-    centerMarkerRef.current.position = location;
+    centerMarkerRef.current.position = center;
     centerMarkerRef.current.title = `Gewählter Standort: ${location.label}`;
 
     const bounds = circle.getBounds();
