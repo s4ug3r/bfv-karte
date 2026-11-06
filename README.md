@@ -81,7 +81,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 | `VITE_BFV_PROXY_URL` | Pfad/URL des Proxys zur BFV-Widget-Schnittstelle | `/bfv-api` |
 | `VITE_BFV_WEB_PROXY_URL` | Pfad/URL des Proxys zu www.bfv.de (Vereinsseiten) | `/bfv-web` |
 | `VITE_BFV_SEED` | vorausgefüllter Startpunkt für die erste Erkundung | – |
-| `VITE_BFV_MATCH_URL_TEMPLATE` | Link zur Spieldetailseite, `{matchId}` wird ersetzt | `https://www.bfv.de/spiele/{matchId}` |
+| `VITE_BFV_MATCH_URL_TEMPLATE` | Link zur Spieldetailseite, `{matchId}` wird ersetzt | `https://www.bfv.de/ergebnisse/spiel/-/{matchId}` |
 | `VITE_BFV_API_BASE_URL` | Basis-URL deines Backends (`/matches`-Endpunkt) | – |
 | `VITE_BFV_API_AREA_QUERY` | `true`, wenn das Backend nach `lat/lng/radiusKm` filtert | `true` |
 | `VITE_BFV_STATIC_URL` | URL eines JSON-Exports (Provider `static`) | `/data/matches.json` |
@@ -170,7 +170,7 @@ Genutzte Endpunkte:
 
 **Weitere Hinweise:**
 - Das Format von `kickoffDate`/`kickoffTime` ist in `bfv-api` nicht dokumentiert. Der Parser versteht `07.11.2026`, `Sa, 07.11.26`, `2026-11-07` und ISO-Zeitpunkte. Spiele ohne Termin werden ausgelassen.
-- Der Link zur Spieldetailseite (`VITE_BFV_MATCH_URL_TEMPLATE`) ist nicht vom BFV dokumentiert. Führt er ins Leere, die Vorlage anpassen oder leer lassen.
+- Der Link zur Spieldetailseite folgt dem Muster der bfv.de-Seiten (`/ergebnisse/spiel/-/{matchId}`); anpassbar über `VITE_BFV_MATCH_URL_TEMPLATE`.
 - Der Proxy `/bfv-web` leitet nur an www.bfv.de weiter. Wer die App öffentlich betreibt, sollte das Aufkommen im Blick behalten und beim BFV nachfragen.
 
 ### Architektur: austauschbarer Data-Provider
