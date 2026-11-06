@@ -15,14 +15,17 @@ interface Props {
 export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewChange }: Props) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="flex items-center gap-2 text-sm font-semibold text-slate-800" aria-live="polite">
+      <p className="flex items-baseline gap-2 text-sm text-slate-600" aria-live="polite">
         {loading ? (
           <>
             <Spinner className="text-bfv-700" /> Spiele werden gesucht…
           </>
         ) : (
           <>
-            {count} {count === 1 ? 'Spiel' : 'Spiele'} im Umkreis von {radiusKm} km gefunden
+            <span className="font-display text-3xl font-bold leading-none text-bfv-950">
+              {count} {count === 1 ? 'Spiel' : 'Spiele'}
+            </span>
+            <span>im Umkreis von {radiusKm} km gefunden</span>
             {refreshing && <Spinner className="h-3 w-3 text-slate-400" />}
           </>
         )}

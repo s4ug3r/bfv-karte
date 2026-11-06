@@ -33,8 +33,6 @@ export interface MatchDataProvider {
   readonly label: string;
   /** true, wenn die Quelle nach Mittelpunkt + Radius filtern kann. */
   readonly supportsAreaQuery: boolean;
-  /** true bei Demodaten – die UI zeigt dann einen deutlichen Hinweis. */
-  readonly isDemo: boolean;
   /** Optional abweichende Frische-Dauer für den Cache (ms), z. B. um teure Quellen zu schonen. */
   readonly staleTimeMs?: number;
   fetchMatches(query: MatchQuery, signal?: AbortSignal): Promise<Match[]>;

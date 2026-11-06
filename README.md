@@ -4,7 +4,7 @@ Responsive Web-App, die Fußballspiele des Bayerischen Fußball-Verbands (BFV) a
 
 **Stack:** React 18 · TypeScript · Tailwind CSS 4 · Vite · TanStack React Query · Google Maps JavaScript API (Advanced Markers, Places, Geocoding) · MarkerClusterer
 
-> **Datenquelle:** Echte Spiele kommen über die Bibliothek [`bfv-api`](https://github.com/SebastianSiedler/bfv-api-js) (v1.4.0) von der BFV-Widget-Schnittstelle. Sie ist **inoffiziell** und kennt keine Umkreissuche – deshalb **erkundet die App die Umgebung einmalig selbst** (Vereine finden, verorten, Mannschaften sammeln). Danach genügen Standort und Radius, um alle Spiele in der Nähe zu sehen. Zum Ausprobieren gibt es einen Demodaten-Schalter. Details unter [BFV-Datenquelle](#bfv-datenquelle).
+> **Datenquelle:** Echte Spiele kommen über die Bibliothek [`bfv-api`](https://github.com/SebastianSiedler/bfv-api-js) (v1.4.0) von der BFV-Widget-Schnittstelle. Sie ist **inoffiziell** und kennt keine Umkreissuche – deshalb **erkundet die App die Umgebung einmalig selbst** (Vereine finden, verorten, Mannschaften sammeln). Danach genügen Standort und Radius, um alle Spiele in der Nähe zu sehen. Details unter [BFV-Datenquelle](#bfv-datenquelle).
 
 ---
 
@@ -26,7 +26,7 @@ Weitere Befehle:
 | `npm test` | Unit-Tests (Entfernung, Zeitzonen, Klassifizierung, Duplikate, Normalisierung, BFV-Links/-Spiele, Umgebungserkundung) |
 | `npm run typecheck` | Nur TypeScript prüfen |
 
-Beim ersten Start: Google Maps aktivieren, Radius wählen und unter **„Spiele in der Umgebung“** einmalig den bfv.de-Link eines Vereins aus der Nähe einfügen (z. B. `https://www.bfv.de/vereine/<name>/<ID>`) → **„Umgebung erkunden“**. Danach zeigt die App alle Spiele im Umkreis. Ohne Google-Key funktioniert nur die Demo-Liste.
+Beim ersten Start: Google Maps aktivieren, Radius wählen und unter **„Spiele in der Umgebung“** einmalig den bfv.de-Link eines Vereins aus der Nähe einfügen (z. B. `https://www.bfv.de/vereine/<name>/<ID>`) → **„Umgebung erkunden“**. Danach zeigt die App alle Spiele im Umkreis.
 
 ---
 
@@ -78,7 +78,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 |---|---|---|
 | `VITE_GOOGLE_MAPS_API_KEY` | Google-API-Key | – |
 | `VITE_GOOGLE_MAPS_MAP_ID` | Map-ID für Advanced Markers | `DEMO_MAP_ID` |
-| `VITE_BFV_DATA_PROVIDER` | `bfv` \| `mock` \| `rest` \| `static` | `rest`, falls Base-URL gesetzt, sonst `bfv` |
+| `VITE_BFV_DATA_PROVIDER` | `bfv` \| `rest` \| `static` | `rest`, falls Base-URL gesetzt, sonst `bfv` |
 | `VITE_BFV_PROXY_URL` | Pfad/URL des Proxys zur BFV-Widget-Schnittstelle | `/bfv-api` |
 | `VITE_BFV_WEB_PROXY_URL` | Pfad/URL des Proxys zu www.bfv.de (Vereinsseiten) | `/bfv-web` |
 | `VITE_BFV_SEED` | vorausgefüllter Startpunkt für die erste Erkundung | – |
@@ -118,7 +118,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 | Filter (ohne Freitext) | `localStorage` | dauerhaft | Komfort |
 | Standort | **nicht gespeichert** | – | Datenschutz |
 
-Bei Quellen **ohne Flächenabfrage** (Demo, `static`) hängt der Cache-Key nicht vom Standort ab – Standort- oder Radiuswechsel lösen keinen neuen Abruf aus. Bei Quellen **mit Flächenabfrage** wird der Mittelpunkt auf ~1 km gerundet und der Radius um 2 km gepuffert, damit kleine Verschiebungen den Cache treffen. Kategorie-, Freitext- und Altersklassenfilter wirken nur lokal und sind sofort da.
+Bei Quellen **ohne Flächenabfrage** (`static`) hängt der Cache-Key nicht vom Standort ab – Standort- oder Radiuswechsel lösen keinen neuen Abruf aus. Bei Quellen **mit Flächenabfrage** wird der Mittelpunkt auf ~1 km gerundet und der Radius um 2 km gepuffert, damit kleine Verschiebungen den Cache treffen. Kategorie-, Freitext- und Altersklassenfilter wirken nur lokal und sind sofort da.
 
 Ein Formatwechsel des Caches wird über `cacheVersion` in `src/config.ts` erzwungen.
 
@@ -183,7 +183,6 @@ interface MatchDataProvider {
   readonly id: string;
   readonly label: string;
   readonly supportsAreaQuery: boolean; // kann die Quelle nach lat/lng/radius filtern?
-  readonly isDemo: boolean;
   fetchMatches(query: { center; radiusKm; from: Date; to: Date }, signal?): Promise<Match[]>;
 }
 ```
@@ -193,7 +192,6 @@ Mitgeliefert:
 | Provider | Datei | Einsatz |
 |---|---|---|
 | `bfv` | `services/providers/bfvWidgetProvider.ts` | **Standard:** echte Spiele über `bfv-api` mit Umkreissuche (über die erkundete Umgebung) |
-| `mock` | `services/providers/mockProvider.ts` | Fiktive, deterministische Demodaten (inkl. Spielstätten ohne Koordinaten und Duplikaten zum Testen) |
 | `rest` | `services/providers/restApiProvider.ts` | Eigenes Backend / Proxy / offizielle API-Anbindung |
 | `static` | `services/providers/staticJsonProvider.ts` | Vorab exportierter Datensatz als JSON-Datei |
 
@@ -277,7 +275,7 @@ src/
 │   ├── bfv/                    bfv-api-Client (über Proxy), Umgebungserkundung (discovery), Verzeichnis (areaIndex)
 │   ├── googleMaps.ts           API-Loader, Geocoding + Places-Textsuche mit Cache
 │   ├── matchService.ts         Pipeline: Laden → Geocoding → Radius/Zeit → Duplikate → Filter
-│   └── providers/              Data-Provider (mock, rest, static) + Normalisierung
+│   └── providers/              Data-Provider (bfv, rest, static) + Normalisierung
 ├── types/                      Match, Filter, Provider-Interface
 └── utils/                      Haversine, Zeitzonen/Datum, Klassifizierung, Duplikate, Text
 server/example-backend.mjs      Beispiel-Backend für den REST-Provider

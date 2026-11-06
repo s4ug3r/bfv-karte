@@ -6,13 +6,13 @@ import type { RadiusKm, SelectedLocation } from './types/filters';
 // Fallback {} erlaubt das Ausführen außerhalb von Vite (z. B. Skripte)
 const env: ImportMetaEnv = import.meta.env ?? {};
 
-export type ProviderKind = 'bfv' | 'mock' | 'rest' | 'static';
+export type ProviderKind = 'bfv' | 'rest' | 'static';
 
 const baseUrl = (env.VITE_BFV_API_BASE_URL ?? '').trim();
 
 function resolveProvider(): ProviderKind {
   const v = (env.VITE_BFV_DATA_PROVIDER ?? '').trim();
-  if (v === 'bfv' || v === 'mock' || v === 'rest' || v === 'static') return v;
+  if (v === 'bfv' || v === 'rest' || v === 'static') return v;
   // Standard: BFV-Widget-Schnittstelle über bfv-api; eigenes Backend, falls konfiguriert
   return baseUrl ? 'rest' : 'bfv';
 }
@@ -77,5 +77,5 @@ export const config = {
   },
 
   /** Wird bei inkompatiblen Cache-Formaten erhöht und verwirft alte localStorage-Caches. */
-  cacheVersion: 'v2',
+  cacheVersion: 'v3',
 } as const;

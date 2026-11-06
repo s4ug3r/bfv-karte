@@ -1,15 +1,23 @@
 @import 'tailwindcss';
 
-/* Farbwelt angelehnt an das BFV-Blau; Kategorie-Farben laut Vorgabe in utils/classify.ts */
+/*
+ * Farbwelt "Spieltag": Rasengrün mit Kreideweiß, Flutlicht-Gelb nur für die wichtigste Aktion.
+ * Die Token heißen weiter bfv-*, damit alle Komponenten die Palette automatisch übernehmen.
+ * Kategorie-Farben der Marker (blau/grün/grau) laut Vorgabe in utils/classify.ts.
+ */
 @theme {
-  --color-bfv-50: #eef4ff;
-  --color-bfv-100: #dbe7ff;
-  --color-bfv-600: #1f5fd1;
-  --color-bfv-700: #164bb0;
-  --color-bfv-800: #0f3e93;
-  --color-bfv-900: #0b2f6e;
-  --color-bfv-950: #071f4a;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-bfv-50: #eef5f0;
+  --color-bfv-100: #dcebe2;
+  --color-bfv-600: #23805a;
+  --color-bfv-700: #1b6446;
+  --color-bfv-800: #16503a;
+  --color-bfv-900: #103b27;
+  --color-bfv-950: #0b2a1c;
+  --color-kreide: #f4f6f2;
+  --color-flutlicht: #f5c518;
+  --color-flutlicht-dark: #d9a90b;
+  --font-sans: 'Barlow', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -19,7 +27,7 @@ body,
 }
 
 body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+  @apply bg-kreide text-slate-900 antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 

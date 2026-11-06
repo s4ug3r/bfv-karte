@@ -98,7 +98,7 @@ export function townFromClubName(name: string): string {
 const PHOTON = 'https://photon.komoot.io/api/';
 /** Bayern als bbox: minLon, minLat, maxLon, maxLat */
 const BAVARIA_BBOX = '8.97,47.27,13.84,50.57';
-const PHOTON_PARALLEL = 4;
+const PHOTON_PARALLEL = 6;
 let photonActive = 0;
 const photonWaiting: (() => void)[] = [];
 

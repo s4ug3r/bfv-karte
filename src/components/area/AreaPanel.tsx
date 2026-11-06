@@ -2,12 +2,11 @@
  * Steuerung der Umgebungserkundung: Status, Startpunkt (nur beim ersten Mal), Fortschritt.
  */
 import { useId, useState, type FormEvent } from 'react';
-import { testGoogleServices, type GoogleTestResult } from '../../services/googleMaps';
 import { config } from '../../config';
 import { estimateMinutes, indexStats, type AreaIndex } from '../../services/bfv/areaIndex';
 import type { DiscoveryProgress } from '../../services/bfv/discovery';
 import { parseSourceInput, type ParsedSourceInput } from '../../services/bfv/sources';
-import { IconAlert, IconSearch, Spinner, buttonPrimary, buttonSecondary, inputClass } from '../ui';
+import { IconAlert, IconSearch, Spinner, buttonHighlight, buttonPrimary, buttonSecondary, inputClass } from '../ui';
 
 interface Props {
   index: AreaIndex;
@@ -23,8 +22,6 @@ interface Props {
   onCancel: () => void;
   onReset: () => void;
   onEnableGoogle: () => void;
-  useDemo: boolean;
-  onUseDemoChange: (v: boolean) => void;
 }
 
 const formatDate = (ts: number) =>
@@ -34,16 +31,6 @@ export function AreaPanel(p: Props) {
   const id = useId();
   const [seedInput, setSeedInput] = useState(config.bfvSeed);
   const [seedError, setSeedError] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<GoogleTestResult | null>(null);
-  const [testing, setTesting] = useState(false);
-  const runTest = async () => {
-    setTesting(true);
-    try {
-      setTestResult(await testGoogleServices());
-    } finally {
-      setTesting(false);
-    }
-  };
   const stats = indexStats(p.index);
   const needsSeed = !p.hasClubsNearby;
   const minutes = estimateMinutes(p.radiusKm);
@@ -66,26 +53,16 @@ export function AreaPanel(p: Props) {
     p.onStart(seed);
   };
 
-  if (p.useDemo) {
-    return (
-      <section className="space-y-2 text-sm">
-        <p className="text-slate-600">Es werden Demodaten angezeigt.</p>
-        <button type="button" className={buttonSecondary} onClick={() => p.onUseDemoChange(false)}>
-          Echte BFV-Spiele verwenden
-        </button>
-      </section>
-    );
-  }
 
   return (
     <section aria-labelledby={`${id}-h`} className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id={`${id}-h`} className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h2 id={`${id}-h`} className="text-sm font-semibold text-slate-700">
           Spiele in der Umgebung
         </h2>
         {stats.clubs > 0 && !p.running && (
           <span className="text-[11px] text-slate-400">
-            {stats.clubs} Vereine · {stats.teams} Teams · {formatDate(p.index.updatedAt)}
+            {stats.clubs} Vereine, Stand {formatDate(p.index.updatedAt)}
           </span>
         )}
       </div>
@@ -105,7 +82,7 @@ export function AreaPanel(p: Props) {
             />
           </div>
           <p className="text-xs">
-            {p.progress.done} Vereine erkundet · {p.progress.queued} ausstehend · {p.progress.teams} Mannschaften
+            {p.progress.done} Vereine erkundet, {p.progress.queued} ausstehend, {p.progress.teams} Mannschaften
           </p>
           <p className="truncate text-xs text-bfv-700">{p.progress.step}</p>
           <button type="button" className={buttonSecondary} onClick={p.onCancel}>
@@ -175,7 +152,7 @@ export function AreaPanel(p: Props) {
                 </p>
               )}
 
-              <button type="submit" className={`${buttonPrimary} w-full`}>
+              <button type="submit" className={`${buttonHighlight} w-full`}>
                 Umgebung erkunden (ca. {minutes} Min.)
               </button>
               {p.radiusKm >= 50 && (
@@ -205,14 +182,14 @@ export function AreaPanel(p: Props) {
             <li>Vereine erkundet: {p.index.lastRun.clubsExpanded}</li>
             <li>Vereine im Umkreis: {p.index.lastRun.clubsInRadius}</li>
             <li>
-              Vereine verortet: {p.index.lastRun.clubsLocated} · nicht gefunden: {p.index.lastRun.clubsNotLocated}
+              Vereine verortet: {p.index.lastRun.clubsLocated}, nicht gefunden: {p.index.lastRun.clubsNotLocated}
             </li>
             <li>
-              Spielpläne geladen: {p.index.lastRun.teamsLoaded} · Fehler: {p.index.lastRun.teamErrors}
+              Spielpläne geladen: {p.index.lastRun.teamsLoaded}, Fehler: {p.index.lastRun.teamErrors}
             </li>
             <li>Spiele gesehen: {p.index.lastRun.matchesSeen}</li>
             <li>
-              Gegner ohne Vereins-ID: {p.index.lastRun.opponentsWithoutClubId} · nachgeschlagen:{' '}
+              Gegner ohne Vereins-ID: {p.index.lastRun.opponentsWithoutClubId}, nachgeschlagen:{' '}
               {p.index.lastRun.opponentsResolvedViaTeam}
             </li>
             {p.index.lastRun.locator && <li>Ortssuche über: {p.index.lastRun.locator}</li>}
@@ -229,36 +206,7 @@ export function AreaPanel(p: Props) {
         </details>
       )}
 
-      {p.googleReady && (
-        <div className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-          <button type="button" className="font-medium text-bfv-700 underline" onClick={() => void runTest()} disabled={testing}>
-            {testing ? 'Teste Google…' : 'Google-Verbindung testen'}
-          </button>
-          {testResult && (
-            <ul className="mt-1.5 space-y-0.5 break-words">
-              <li>Seite: {testResult.origin}</li>
-              <li>Schlüssel: {testResult.keySuffix}</li>
-              <li className={testResult.places.startsWith('OK') ? 'text-green-700' : 'text-red-700'}>
-                Places-Suche: {testResult.places}
-              </li>
-              <li className={testResult.geocoding.startsWith('OK') ? 'text-green-700' : 'text-red-700'}>
-                Geocoding: {testResult.geocoding}
-              </li>
-            </ul>
-          )}
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-        <label className="flex items-center gap-1.5">
-          <input
-            type="checkbox"
-            checked={p.useDemo}
-            onChange={(e) => p.onUseDemoChange(e.target.checked)}
-            className="h-3.5 w-3.5 accent-bfv-700"
-          />
-          Demodaten anzeigen
-        </label>
         {stats.clubs > 0 && !p.running && (
           <button
             type="button"

@@ -10,6 +10,7 @@ import type { LatLng } from '../types/match';
 import { readJson, writeJson } from '../utils/storage';
 import { normalizeText } from '../utils/text';
 import { openSearch, townFromClubName, type OsmPlace } from './osm';
+import { getPlaceBias, loadPlaceIndex, lookupPlace } from './placeIndex';
 
 let loadPromise: Promise<void> | null = null;
 
@@ -148,9 +149,9 @@ export const isUsingOsmFallback = () => googleSearchBlocked;
 function noteGoogleError(where: string, err: unknown) {
   const text = describeError(err);
   lastGoogleError = `${where}: ${text}`;
-  if (/billing|request_denied|permission_denied|not authorized|not allowed|api.*not.*(enabled|activated)/i.test(text)) {
+  if (/billing|request_denied|permission_denied|resource_exhausted|quota|over_query_limit|not authorized|not allowed|api.*not.*(enabled|activated)/i.test(text)) {
     if (!googleSearchBlocked) {
-      console.info('[Ortssuche] Google-Suche nicht verfügbar (z. B. keine Abrechnung) – nutze OpenStreetMap.');
+      console.info('[Ortssuche] Google-Suche nicht verfügbar (keine Abrechnung oder Tageskontingent aufgebraucht) – nutze OpenStreetMap.');
     }
     googleSearchBlocked = true;
   } else {
@@ -244,8 +245,15 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
       }
     }
 
-    // OpenStreetMap: Ort aus dem Vereinsnamen, sonst der Suchtext selbst
+    // OpenStreetMap-Ortsverzeichnis: alle Orte Bayerns, einmal geladen – keine Anfrage pro Verein
     const town = townFromClubName(query);
+    const places = await loadPlaceIndex();
+    if (places) {
+      const hit = lookupPlace(places, town || query, getPlaceBias());
+      if (hit) return { p: hit, a: town || undefined };
+    }
+
+    // Einzelsuche (Photon, sonst Nominatim): Ort aus dem Vereinsnamen, sonst der Suchtext selbst
     let hadError = false;
     for (const q of [...new Set([town, query].filter(Boolean))]) {
       const osm = await osmSearch(q);
@@ -265,51 +273,4 @@ interface PlaceResult {
   location?: google.maps.LatLng | null;
   formattedAddress?: string | null;
   displayName?: string | null;
-}
-
-// ─── Verbindungstest (Knopf "Google-Verbindung testen") ─────────────────────
-
-export interface GoogleTestResult {
-  origin: string;
-  keySuffix: string;
-  places: string;
-  geocoding: string;
-}
-
-/**
- * Fragt Places-Textsuche und Geocoding je einmal direkt bei Google ab (ohne Cache)
- * und gibt die Antwort im Klartext zurück – zum Vergleich lokal vs. gehostet.
- */
-export async function testGoogleServices(): Promise<GoogleTestResult> {
-  const result: GoogleTestResult = {
-    origin: window.location.origin,
-    keySuffix: config.googleMapsApiKey ? `…${config.googleMapsApiKey.slice(-4)}` : '(kein Schlüssel)',
-    places: '',
-    geocoding: '',
-  };
-  if (!isGoogleMapsLoaded()) {
-    result.places = result.geocoding = 'Google Maps ist nicht geladen';
-    return result;
-  }
-  try {
-    const PlaceCtor = (google.maps.places as unknown as {
-      Place?: { searchByText: (req: Record<string, unknown>) => Promise<{ places: PlaceResult[] }> };
-    }).Place;
-    if (!PlaceCtor?.searchByText) throw new Error('Place.searchByText nicht verfügbar');
-    const { places } = await PlaceCtor.searchByText({
-      textQuery: 'TSV 1865 Dachau Sportplatz',
-      fields: ['displayName', 'location'],
-      maxResultCount: 1,
-    });
-    result.places = places?.[0]?.location ? `OK – gefunden: ${places[0].displayName ?? '?'}` : 'OK, aber kein Treffer';
-  } catch (err) {
-    result.places = `FEHLER – ${describeError(err)}`;
-  }
-  try {
-    const { results } = await new google.maps.Geocoder().geocode({ address: 'Dachau, Bayern' });
-    result.geocoding = results[0] ? `OK – ${results[0].formatted_address}` : 'OK, aber kein Treffer';
-  } catch (err) {
-    result.geocoding = `FEHLER – ${describeError(err)}`;
-  }
-  return result;
 }

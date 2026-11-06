@@ -16,6 +16,7 @@
 import type { LatLng } from '../../types/match';
 import { haversineKm } from '../../utils/distance';
 import { clearLastGoogleError, findPlace, getLastGoogleError, isUsingOsmFallback } from '../googleMaps';
+import { loadPlaceIndex, setPlaceBias } from '../placeIndex';
 import { clubNameFromTeam } from '../providers/bfvWidgetProvider';
 import type { AreaClub, AreaIndex, DiscoveryStats } from './areaIndex';
 import { clubsInRadius, isFresh } from './areaIndex';
@@ -34,7 +35,7 @@ const EDGE_MARGIN_KM = 3;
 /** Sicherheitsgrenze gegen ausufernde Erkundungen. */
 const MAX_CLUBS = 800;
 /** Parallel erkundete Vereine (je Verein zusätzlich 2 parallele Spielplan-Abfragen) – schont den BFV. */
-const CONCURRENCY = 4;
+const CONCURRENCY = 5;
 
 export interface DiscoveryProgress {
   /** erkundete Vereine */
@@ -98,7 +99,12 @@ function throwIfAborted(signal: AbortSignal) {
 export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   const { center, radiusKm, signal } = opts;
   const deps = { ...defaultDeps, ...opts.deps };
-  if (!opts.deps?.locate) clearLastGoogleError();
+  if (!opts.deps?.locate) {
+    clearLastGoogleError();
+    // Gleichnamige Orte zugunsten der Nähe auflösen; Ortsverzeichnis schon im Hintergrund laden
+    setPlaceBias(center);
+    void loadPlaceIndex();
+  }
   // Arbeitskopie – das gespeicherte Verzeichnis wird erst über Checkpoints/Ergebnis ersetzt
   const index: AreaIndex = structuredClone(opts.index);
   const now = Date.now();

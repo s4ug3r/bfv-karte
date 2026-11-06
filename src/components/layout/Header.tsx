@@ -1,25 +1,29 @@
-import { IconBall } from '../ui';
-
-export function Header({ isDemo }: { isDemo: boolean }) {
+/**
+ * Kopfzeile: Rasengrün mit Kreidelinien (Mittelkreis und Mittellinie) als Erkennungszeichen.
+ */
+export function Header() {
   return (
-    <header className="z-20 shrink-0 bg-gradient-to-r from-bfv-950 via-bfv-900 to-bfv-800 text-white shadow-md">
-      <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
-          <IconBall width={22} height={22} />
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-extrabold tracking-tight sm:text-xl">BFV Spiele in der Nähe</h1>
-          <p className="truncate text-xs text-bfv-100/80">Amateurfußball in Bayern – Herren & Jugend auf einen Blick</p>
-        </div>
-        {isDemo && (
-          <span
-            className="ml-auto shrink-0 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-950"
-            title="Es werden fiktive Demodaten angezeigt – keine echten Ansetzungen."
-          >
-            Demo
-          </span>
-        )}
+    <header className="relative z-20 shrink-0 overflow-hidden bg-bfv-950 text-white">
+      {/* Kreidelinien des Spielfelds, rein dekorativ */}
+      <svg
+        className="pointer-events-none absolute -right-10 top-1/2 h-[180%] -translate-y-1/2 text-white/12 sm:right-8"
+        viewBox="0 0 200 200"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        aria-hidden
+      >
+        <circle cx="100" cy="100" r="62" />
+        <circle cx="100" cy="100" r="4" fill="currentColor" />
+        <line x1="100" y1="-20" x2="100" y2="220" />
+      </svg>
+      <div className="relative flex items-baseline gap-3 px-4 py-3 sm:px-5 sm:py-4">
+        <h1 className="font-display text-[26px] font-bold leading-none tracking-wide sm:text-3xl">
+          BFV Spiele in der Nähe
+        </h1>
+        <p className="hidden text-sm text-bfv-100/75 sm:block">Wer heute in deiner Gegend spielt</p>
       </div>
+      <div className="h-1 bg-gradient-to-r from-flutlicht via-flutlicht to-transparent" aria-hidden />
     </header>
   );
 }

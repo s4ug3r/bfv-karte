@@ -91,10 +91,10 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
     clustererRef.current = new MarkerClusterer({ map, renderer: clusterRenderer });
     circleRef.current = new google.maps.Circle({
       map,
-      strokeColor: '#164bb0',
+      strokeColor: '#1b6446',
       strokeOpacity: 0.6,
       strokeWeight: 2,
-      fillColor: '#1f5fd1',
+      fillColor: '#23805a',
       fillOpacity: 0.06,
       clickable: false,
     });

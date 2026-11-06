@@ -10,7 +10,7 @@ import { MatchList } from './components/results/MatchList';
 import { ResultBar, type ViewMode } from './components/results/ResultBar';
 import { EmptyState, ErrorState, LoadingList, type Suggestion } from './components/results/StatusViews';
 import { AreaPanel } from './components/area/AreaPanel';
-import { IconFilter, IconAlert } from './components/ui';
+import { IconFilter } from './components/ui';
 import { config } from './config';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useGoogleMaps } from './hooks/useGoogleMaps';
@@ -59,10 +59,9 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Erkundete Umgebung (Vereine/Mannschaften) und Demo-Schalter – nur beim BFV-Provider relevant
+  // Erkundete Umgebung (Vereine/Mannschaften) – nur beim BFV-Provider relevant
   const area = useAreaDiscovery();
   const loadProgress = useLoadProgress();
-  const [useDemo, setUseDemo] = usePersistentState<boolean>('bfv.useDemo', false, (v) => v === true);
 
   const mapRef = useRef<MapViewHandle>(null);
   const mapSectionRef = useRef<HTMLElement>(null);
@@ -70,7 +69,7 @@ export default function App() {
   const maps = useGoogleMaps(googleConsent);
   const googleReady = maps.status === 'ready';
   const geo = useGeolocation();
-  const provider = getMatchProvider(area.index, useDemo);
+  const provider = getMatchProvider(area.index);
   const result = useMatches(provider, location, filters, googleReady);
   const areaCovered = isAreaCovered(area.index, location, filters.radiusKm);
   const clubsNearby = useMemo(
@@ -78,7 +77,7 @@ export default function App() {
     [area.index, location, filters.radiusKm],
   );
   // Noch nichts erkundet in diesem Umkreis → Hinweis statt leerer Liste
-  const needsDiscovery = usesBfvSources && !useDemo && clubsNearby === 0;
+  const needsDiscovery = usesBfvSources && clubsNearby === 0;
 
   const updateFilters = useCallback(
     (patch: Partial<Filters>) => setStoredFilters((f) => ({ ...f, ...patch })),
@@ -134,7 +133,7 @@ export default function App() {
       <EmptyState
         title="Umgebung noch nicht erkundet"
         text="Starte oben unter „Spiele in der Umgebung“ die Erkundung. Die App findet dann selbst alle Vereine im Umkreis und zeigt ihre Spiele – das ist nur einmal nötig."
-        suggestions={[{ label: 'Erst mal Demodaten ansehen', onClick: () => setUseDemo(true) }]}
+        suggestions={[]}
       />
     );
   } else if (result.emptyRange) {
@@ -200,7 +199,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
-      <Header isDemo={result.provider.isDemo} />
+      <Header />
 
       <main
         className={`flex flex-1 flex-col lg:grid lg:min-h-0 ${
@@ -210,17 +209,6 @@ export default function App() {
         {/* Mobil: "contents" lässt Steuerung, Karte und Liste per order sortieren; Desktop: scrollbare Seitenleiste */}
         <aside className="contents lg:block lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200">
           <div className={`order-1 space-y-4 p-4 sm:p-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
-            {result.provider.isDemo && (
-              <div className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
-                <IconAlert width={16} height={16} className="mt-px shrink-0" />
-                <span>
-                  <strong>Demodaten:</strong> Die angezeigten Spiele sind fiktiv.{' '}
-                  {usesBfvSources
-                    ? 'Für echte Spiele den Haken „Demodaten anzeigen“ unter „Spiele in der Umgebung“ entfernen.'
-                    : 'Binde eine BFV-Datenquelle an (siehe README), um echte Ansetzungen zu sehen.'}
-                </span>
-              </div>
-            )}
 
             <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
               <LocationPanel
@@ -242,7 +230,7 @@ export default function App() {
                 onClick={() => setFiltersOpen((o) => !o)}
               >
                 <span className="flex items-center gap-2">
-                  <IconFilter /> Filter · {filters.radiusKm} km · {TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label}
+                  <IconFilter /> Filter: {filters.radiusKm} km, {TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label}
                   {userFilterCount > 0 && (
                     <span className="rounded-full bg-bfv-700 px-1.5 text-[11px] text-white">{userFilterCount}</span>
                   )}
@@ -274,8 +262,6 @@ export default function App() {
                   onCancel={area.cancel}
                   onReset={area.reset}
                   onEnableGoogle={() => setGoogleConsent(true)}
-                  useDemo={useDemo}
-                  onUseDemoChange={setUseDemo}
                 />
               </div>
             )}

@@ -11,7 +11,6 @@ export class StaticJsonMatchProvider implements MatchDataProvider {
   readonly id = 'static';
   readonly label = 'Exportierter BFV-Datensatz';
   readonly supportsAreaQuery = false;
-  readonly isDemo = false;
 
   constructor(private readonly url: string) {}
 

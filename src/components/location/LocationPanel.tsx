@@ -20,7 +20,7 @@ export function LocationPanel(props: Props) {
     <section aria-labelledby="loc-heading">
       {/* Kein <label for>: Das Google-Suchfeld steckt in einem Web-Component, auf dessen
           inneres Eingabefeld ein Label nicht zeigen kann. Beschriftung erfolgt per aria-label. */}
-      <h2 id="loc-heading" className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <h2 id="loc-heading" className="mb-1.5 text-sm font-semibold text-slate-700">
         Standort
       </h2>
 

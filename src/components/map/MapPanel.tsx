@@ -27,7 +27,7 @@ export const MapPanel = forwardRef<MapViewHandle, Props>(function MapPanel(props
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#dbe7ff,transparent_55%),radial-gradient(circle_at_80%_80%,#dcfce7,transparent_50%)] bg-slate-50 p-6">
+    <div className="flex h-full w-full items-center justify-center bg-bfv-50 p-6">
       <div className="max-w-sm rounded-2xl bg-white/95 p-6 text-center shadow-lg ring-1 ring-slate-200">
         {status === 'loading' && (
           <div className="flex flex-col items-center gap-3 text-slate-600">

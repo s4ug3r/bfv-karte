@@ -94,7 +94,6 @@ export class BfvAreaMatchProvider implements MatchDataProvider {
   readonly id: string;
   readonly label = 'BFV (über bfv-api, inoffiziell)';
   readonly supportsAreaQuery = true;
-  readonly isDemo = false;
   readonly staleTimeMs = config.cache.bfvMatchesStaleMs;
 
   constructor(private readonly index: AreaIndex) {

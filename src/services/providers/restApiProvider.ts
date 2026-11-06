@@ -15,7 +15,6 @@ import { normalizeMatchList } from './normalize';
 export class RestApiMatchProvider implements MatchDataProvider {
   readonly id = 'rest';
   readonly label: string;
-  readonly isDemo = false;
 
   constructor(
     private readonly baseUrl: string,
