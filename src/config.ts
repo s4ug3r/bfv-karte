@@ -77,5 +77,5 @@ export const config = {
   },
 
   /** Wird bei inkompatiblen Cache-Formaten erhöht und verwirft alte localStorage-Caches. */
-  cacheVersion: 'v1',
+  cacheVersion: 'v2',
 } as const;

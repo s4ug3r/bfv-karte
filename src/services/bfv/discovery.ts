@@ -15,7 +15,7 @@
  */
 import type { LatLng } from '../../types/match';
 import { haversineKm } from '../../utils/distance';
-import { findPlace } from '../googleMaps';
+import { clearLastGoogleError, findPlace, getLastGoogleError } from '../googleMaps';
 import { clubNameFromTeam } from '../providers/bfvWidgetProvider';
 import type { AreaClub, AreaIndex, DiscoveryStats } from './areaIndex';
 import { clubsInRadius, isFresh } from './areaIndex';
@@ -98,6 +98,7 @@ function throwIfAborted(signal: AbortSignal) {
 export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   const { center, radiusKm, signal } = opts;
   const deps = { ...defaultDeps, ...opts.deps };
+  if (!opts.deps?.locate) clearLastGoogleError();
   // Arbeitskopie – das gespeicherte Verzeichnis wird erst über Checkpoints/Ergebnis ersetzt
   const index: AreaIndex = structuredClone(opts.index);
   const now = Date.now();
@@ -153,7 +154,8 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   /** Verein verorten (einmal pro 30 Tage) und ggf. zur Erkundung vormerken. */
   const consider = async (id: string, nameGuess: string, force = false) => {
     const c = club(id, nameGuess);
-    if (c.location === undefined || !isFresh(c.locatedAt, now)) {
+    // Nicht gefundene Vereine bei jeder Erkundung erneut suchen (z. B. nach behobenem Google-Fehler)
+    if (c.location === undefined || c.location === null || !isFresh(c.locatedAt, now)) {
       throwIfAborted(signal);
       const officialName = await deps.fetchClubName(id, signal);
       if (officialName) c.name = officialName;
@@ -316,6 +318,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
 
   stats.clubsInRadius = clubsInRadius(index, center, radiusKm).length;
   stats.at = Date.now();
+  stats.googleError = opts.deps?.locate ? null : getLastGoogleError();
   index.lastRun = stats;
   console.info('[Erkundung] Ergebnis', stats);
 

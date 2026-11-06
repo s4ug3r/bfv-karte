@@ -185,7 +185,10 @@ export function AreaPanel(p: Props) {
       )}
 
       {p.index.lastRun && !p.running && (
-        <details className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+        <details
+          className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600"
+          open={!!p.index.lastRun.googleError || p.index.lastRun.clubsInRadius <= 1}
+        >
           <summary className="cursor-pointer select-none">Details zur letzten Erkundung</summary>
           <ul className="mt-1.5 space-y-0.5 tabular-nums">
             <li>Vereine erkundet: {p.index.lastRun.clubsExpanded}</li>
@@ -201,6 +204,9 @@ export function AreaPanel(p: Props) {
               Gegner ohne Vereins-ID: {p.index.lastRun.opponentsWithoutClubId} · nachgeschlagen:{' '}
               {p.index.lastRun.opponentsResolvedViaTeam}
             </li>
+            {p.index.lastRun.googleError && (
+              <li className="font-medium text-red-700">Google-Fehler: {p.index.lastRun.googleError}</li>
+            )}
           </ul>
         </details>
       )}

@@ -45,6 +45,8 @@ export interface DiscoveryStats {
   opponentsWithoutClubId: number;
   opponentsResolvedViaTeam: number;
   clubsInRadius: number;
+  /** Letzter Google-Fehler während der Erkundung (z. B. fehlende API-Freigabe) */
+  googleError?: string | null;
 }
 
 export interface CoveredArea extends LatLng {
@@ -61,7 +63,7 @@ export interface AreaIndex {
 }
 
 // v2: frühere Version konnte einen Umkreis fälschlich als erkundet markieren → neu anfangen
-const STORAGE_KEY = 'bfv.area.v2';
+const STORAGE_KEY = 'bfv.area.v3';
 
 export const emptyIndex = (): AreaIndex => ({ version: 1, clubs: {}, covered: [], updatedAt: 0 });
 

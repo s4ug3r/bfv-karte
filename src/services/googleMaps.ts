@@ -118,9 +118,26 @@ async function cachedLookup(
   return promise;
 }
 
+// ─── Fehlerdiagnose ─────────────────────────────────────────────────────────
+// Letzter Fehler von Google (z. B. "REQUEST_DENIED" oder "API not enabled") – wird in der
+// App angezeigt, damit Konfigurationsprobleme sofort sichtbar sind.
+let lastGoogleError: string | null = null;
+export const getLastGoogleError = () => lastGoogleError;
+export const clearLastGoogleError = () => {
+  lastGoogleError = null;
+};
+
+function describeError(err: unknown): string {
+  const e = err as { code?: string; message?: string; name?: string };
+  return [e?.code, e?.message || e?.name].filter(Boolean).join(': ') || String(err);
+}
+
+/** Signalisiert einen Google-Fehler; solche Ergebnisse werden nicht gecacht. */
+class LookupFailed extends Error {}
+
 /**
  * Wandelt eine Adresse in Koordinaten um (Google Geocoding API).
- * Ergebnisse – auch negative – werden im localStorage zwischengespeichert.
+ * "Nicht gefunden" wird kurz gecacht, Fehler (z. B. fehlende Berechtigung) nie.
  */
 export async function geocodeAddress(address: string): Promise<LatLng | null> {
   const key = normalizeText(address);
@@ -136,6 +153,8 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
       return { p: loc ? { lat: loc.lat(), lng: loc.lng() } : null, a: results[0]?.formatted_address };
     } catch (err) {
       if ((err as { code?: string }).code === 'ZERO_RESULTS') return { p: null };
+      lastGoogleError = `Geocoding: ${describeError(err)}`;
+      console.warn('[Google] Geocoding fehlgeschlagen:', address, err);
       throw err;
     }
   });
@@ -159,6 +178,7 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
   const key = normalizeText(query);
   if (!key) return null;
   const entry = await cachedLookup(`p:${key}`, async () => {
+    let failed = false;
     const PlaceCtor = (google.maps.places as unknown as {
       Place?: { searchByText: (req: Record<string, unknown>) => Promise<{ places: PlaceResult[] }> };
     }).Place;
@@ -172,7 +192,7 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
           region: 'de',
           maxResultCount: 1,
         });
-        const place = places[0];
+        const place = places?.[0];
         if (place?.location) {
           return {
             p: { lat: place.location.lat(), lng: place.location.lng() },
@@ -180,11 +200,20 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
             n: place.displayName ?? undefined,
           };
         }
-      } catch {
-        /* Places nicht verfügbar → Geocoding versuchen */
+      } catch (err) {
+        failed = true;
+        lastGoogleError = `Places-Suche: ${describeError(err)}`;
+        console.warn('[Google] Places-Suche fehlgeschlagen:', query, err);
       }
+    } else {
+      failed = true;
+      lastGoogleError = 'Places-Suche: Place.searchByText nicht verfügbar';
     }
+    // Ersatz: Geocoding
+    const errorBefore = lastGoogleError;
     const p = await geocodeAddress(`${query}, Bayern`);
+    if (!p && lastGoogleError !== errorBefore) failed = true;
+    if (!p && failed) throw new LookupFailed('Fehler – nicht cachen'); // nur echte Nicht-Treffer cachen
     return { p };
   });
   return entry.p ? { location: entry.p, address: entry.a, name: entry.n } : null;
