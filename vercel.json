@@ -1,8 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    { "source": "/bfv-api/:path*", "destination": "https://widget-prod.bfv.de/api/service/widget/v1/:path*" },
-    { "source": "/bfv-web/:path*", "destination": "https://www.bfv.de/:path*" },
-    { "source": "/((?!bfv-api/|bfv-web/).*)", "destination": "/index.html" }
-  ]
-}
