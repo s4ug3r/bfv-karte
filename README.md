@@ -27,7 +27,7 @@ Weitere Befehle:
 | `npm test` | Unit-Tests (Entfernung, Zeitzonen, Klassifizierung, Duplikate, Normalisierung, BFV-Links/-Spiele, Umgebungserkundung) |
 | `npm run typecheck` | Nur TypeScript prüfen |
 
-Beim ersten Start: Google Maps aktivieren, Radius wählen und unter **„Spiele in der Umgebung“** einmalig den bfv.de-Link eines Vereins aus der Nähe einfügen (z. B. `https://www.bfv.de/vereine/<name>/<ID>`) → **„Umgebung erkunden“**. Danach zeigt die App alle Spiele im Umkreis.
+Beim ersten Start: Google Maps aktivieren – die App erkundet die Umgebung dann automatisch und zeigt danach alle Spiele im Umkreis. Ein Vereins-Link ist nicht nötig; optional beschleunigt der bfv.de-Link eines Vereins aus der Nähe die erste Erkundung.
 
 ---
 
@@ -82,7 +82,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 | `VITE_BFV_DATA_PROVIDER` | `bfv` \| `rest` \| `static` | `rest`, falls Base-URL gesetzt, sonst `bfv` |
 | `VITE_BFV_PROXY_URL` | Pfad/URL des Proxys zur BFV-Widget-Schnittstelle | `/bfv-api` |
 | `VITE_BFV_WEB_PROXY_URL` | Pfad/URL des Proxys zu www.bfv.de (Vereinsseiten) | `/bfv-web` |
-| `VITE_BFV_SEED` | vorausgefüllter Startpunkt für die erste Erkundung | – |
+| `VITE_BFV_SEED` | eingebauter Startverein (bfv.de-Link), ab dem die erste Erkundung in die gewählte Gegend wandert – am besten ein Verein aus der Region, in der die App meist genutzt wird | eingebaute Mannschaft |
 | `VITE_BFV_MATCH_URL_TEMPLATE` | Link zur Spieldetailseite, `{matchId}` wird ersetzt | `https://www.bfv.de/ergebnisse/spiel/-/{matchId}` |
 | `VITE_BFV_API_BASE_URL` | Basis-URL deines Backends (`/matches`-Endpunkt) | – |
 | `VITE_BFV_API_AREA_QUERY` | `true`, wenn das Backend nach `lat/lng/radiusKm` filtert | `true` |
@@ -154,7 +154,7 @@ Startpunkt (ein Verein/eine Mannschaft/eine Liga aus der Nähe)
 
 Weil Ligen regional organisiert sind, erreicht diese Breitensuche praktisch alle Vereine im Umkreis – inklusive aller Jugendteams (über die Vereinsseite). Nur ganz isolierte Vereine ohne Spiele gegen Nachbarn würden fehlen.
 
-- **Einmalig nötig:** ein Startpunkt (bfv.de-Link eines Vereins, einer Mannschaft oder Liga in der Nähe). Spätere Erkundungen – anderer Ort, größerer Radius – starten von bereits bekannten Vereinen, solange es Überschneidungen gibt.
+- **Kein Startpunkt nötig:** Kennt die App in der Gegend noch keinen Verein, „wandert“ sie von einem bekannten oder eingebauten Verein (`VITE_BFV_SEED`) über die Spielpläne dorthin: Sie erkundet immer den Gegner-Verein, der dem gewählten Standort am nächsten liegt. Auf dieser Wanderung werden Vereine nur grob über den Ortsnamen im kostenlosen Ortsverzeichnis verortet; Google wird erst in Zielnähe gefragt. Optional kann man einen Vereins-Link angeben – das geht schneller.
 - **Dauer:** abhängig vom Radius, grob 1 Min. bei 10–20 km, mehrere Minuten bei 50 km (Fortschrittsanzeige, abbrechbar; Zwischenstände werden gespeichert). Sicherheitsgrenze: 800 Vereine.
 - **Gespeichert** im Browser (`localStorage`, Schlüssel `bfv.area.v1`) für **30 Tage**; danach wird neu erkundet, weil sich Mannschafts-IDs zur Saison ändern können.
 - **Danach:** Bei jeder Suche lädt die App die Spielpläne aller Mannschaften der Vereine im gewählten Radius (max. 3 parallel, 60 Minuten Cache – der BFV-Server soll nicht unnötig belastet werden). Ein kleinerer Radius bedeutet weniger Anfragen.

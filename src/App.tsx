@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FilterPanel, TIME_PRESETS } from './components/filters/FilterPanel';
 import { Footer } from './components/layout/Footer';
 import { Header } from './components/layout/Header';
@@ -101,6 +101,17 @@ export default function App() {
   // Noch nichts erkundet in diesem Umkreis → Hinweis statt leerer Liste
   const needsDiscovery = usesBfvSources && clubsNearby === 0;
 
+  // Neue Gegend ohne bekannte Vereine → Erkundung automatisch starten (einmal je Ort und Umkreis),
+  // damit niemand einen Vereins-Link heraussuchen muss
+  const autoStarted = useRef(new Set<string>());
+  useEffect(() => {
+    if (!needsDiscovery || !googleReady || area.running || area.error) return;
+    const key = `${location.lat.toFixed(3)},${location.lng.toFixed(3)},${filters.radiusKm}`;
+    if (autoStarted.current.has(key)) return;
+    autoStarted.current.add(key);
+    void area.start(location, filters.radiusKm);
+  }, [needsDiscovery, googleReady, area, location, filters.radiusKm]);
+
   const updateFilters = useCallback(
     (patch: Partial<Filters>) => setStoredFilters((f) => ({ ...f, ...patch })),
     [setStoredFilters],
@@ -170,7 +181,11 @@ export default function App() {
     ) : (
       <EmptyState
         title="Umgebung noch nicht erkundet"
-        text="Starte oben unter „Spiele in der Umgebung“ die Erkundung. Die App findet dann selbst alle Vereine im Umkreis und zeigt ihre Spiele – das ist nur einmal nötig."
+        text={
+          googleReady
+            ? 'Tippe oben auf „Umgebung erkunden“. Die App findet dann selbst alle Vereine im Umkreis und zeigt ihre Spiele – ganz ohne Eingabe, und nur einmal nötig.'
+            : 'Aktiviere Google Maps. Danach findet die App selbst alle Vereine im Umkreis und zeigt ihre Spiele – ganz ohne Eingabe.'
+        }
         suggestions={[]}
       />
     );
@@ -297,7 +312,6 @@ export default function App() {
                   index={area.index}
                   radiusKm={filters.radiusKm}
                   covered={areaCovered}
-                  hasClubsNearby={clubsNearby > 0}
                   googleReady={googleReady}
                   running={area.running}
                   progress={area.progress}

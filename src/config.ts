@@ -42,6 +42,15 @@ export const config = {
   bfvWebProxyUrl: (env.VITE_BFV_WEB_PROXY_URL ?? '').trim() || '/bfv-web',
   /** Optionaler Startpunkt für die erste Umgebungserkundung (bfv.de-Link oder ID). */
   bfvSeed: (env.VITE_BFV_SEED ?? '').trim(),
+  /**
+   * Eingebaute Startpunkte, falls niemand einen Verein angibt. Sie dürfen irgendwo in Bayern
+   * liegen: Die Erkundung wandert über die Spielpläne von dort in die gewählte Gegend.
+   * VITE_BFV_SEED (z. B. der eigene Verein) wird zuerst probiert.
+   */
+  bfvFallbackSeeds: [
+    (env.VITE_BFV_SEED ?? '').trim(),
+    '016PD5QT70000000VV0AG811VTE5EA5R', // Mannschaft aus der Doku der bfv-api-Bibliothek
+  ].filter(Boolean),
   /** Link zur Spieldetailseite; {matchId} wird ersetzt. Leer = kein Link. */
   bfvMatchUrlTemplate: env.VITE_BFV_MATCH_URL_TEMPLATE ?? 'https://www.bfv.de/ergebnisse/spiel/-/{matchId}',
   bfvStaticUrl: (env.VITE_BFV_STATIC_URL ?? '').trim() || '/data/matches.json',

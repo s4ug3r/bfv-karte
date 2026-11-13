@@ -60,6 +60,7 @@ const deps: DiscoveryDeps = {
     const c = Object.values(CLUBS).find((x) => q.startsWith(x.name));
     return c ? { location: c.pos } : null;
   },
+  locateCoarse: async (name) => Object.values(CLUBS).find((x) => name.startsWith(x.name))?.pos ?? null,
 };
 
 describe('discoverArea', () => {
@@ -133,5 +134,37 @@ describe('discoverArea', () => {
       message = (err as Error).message;
     }
     expect(message.includes('Startpunkt')).toBe(true);
+  });
+
+  it('wandert ohne Startpunkt von einem entfernten eingebauten Verein in die gewählte Gegend', async () => {
+    calls.length = 0;
+    const steps: string[] = [];
+    const index = await discoverArea({
+      index: emptyIndex(),
+      center,
+      radiusKm: 20,
+      fallbackSeeds: [{ id: 'E', kind: 'club' }],
+      signal: new AbortController().signal,
+      onProgress: (p) => steps.push(p.step),
+      deps,
+    });
+    expect(clubsInRadius(index, center, 20).map((c) => c.id).sort()).toEqual(['A', 'B', 'C', 'D']);
+    expect(isAreaCovered(index, center, 20)).toBe(true);
+    expect(steps.some((s) => s.includes('Weg in deine Gegend'))).toBe(true);
+  });
+
+  it('nutzt den eingebauten Startverein nicht, wenn ein eigener Startpunkt angegeben ist', async () => {
+    calls.length = 0;
+    await discoverArea({
+      index: emptyIndex(),
+      center,
+      radiusKm: 20,
+      seed: { id: 'A', kind: 'club' },
+      fallbackSeeds: [{ id: 'E', kind: 'club' }],
+      signal: new AbortController().signal,
+      onProgress: () => {},
+      deps,
+    });
+    expect(calls).not.toContain('club:E');
   });
 });

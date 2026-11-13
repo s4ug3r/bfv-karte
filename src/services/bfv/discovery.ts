@@ -15,7 +15,7 @@
  */
 import type { LatLng } from '../../types/match';
 import { haversineKm } from '../../utils/distance';
-import { clearLastGoogleError, findPlace, getLastGoogleError, isUsingOsmFallback } from '../googleMaps';
+import { clearLastGoogleError, findPlace, findTownCoarse, getLastGoogleError, isUsingOsmFallback } from '../googleMaps';
 import { loadPlaceIndex, setPlaceBias } from '../placeIndex';
 import { clubNameFromTeam } from '../providers/bfvWidgetProvider';
 import type { AreaClub, AreaIndex, DiscoveryStats } from './areaIndex';
@@ -34,6 +34,10 @@ import type { ParsedSourceInput } from './sources';
 const EDGE_MARGIN_KM = 3;
 /** Sicherheitsgrenze gegen ausufernde Erkundungen. */
 const MAX_CLUBS = 800;
+/** Höchstzahl an Schritten, um von einem entfernten Startverein in die gewählte Gegend zu wandern. */
+const MAX_WALK_HOPS = 40;
+/** Vereine, die grob (Ortsname) so nah liegen, werden auf der Wanderung genau verortet. */
+const WALK_PRECISE_MARGIN_KM = 15;
 /** Parallel erkundete Vereine (je Verein zusätzlich 2 parallele Spielplan-Abfragen) – schont den BFV. */
 const CONCURRENCY = 5;
 
@@ -54,6 +58,11 @@ export interface DiscoveryOptions {
   radiusKm: number;
   /** Startpunkt; optional, wenn das Verzeichnis schon Vereine in der Nähe kennt. */
   seed?: ParsedSourceInput & { kind?: 'team' | 'competition' | 'club' };
+  /**
+   * Eingebaute Startpunkte irgendwo in Bayern – nur genutzt, wenn weder ein Startpunkt angegeben
+   * ist noch das Verzeichnis Vereine kennt. Die Erkundung wandert von dort in die gewählte Gegend.
+   */
+  fallbackSeeds?: ParsedSourceInput[];
   signal: AbortSignal;
   onProgress: (p: DiscoveryProgress) => void;
   /** Zwischenstände speichern (z. B. alle 10 Vereine), damit ein Abbruch nichts verliert */
@@ -72,6 +81,8 @@ export interface DiscoveryDeps {
   fetchClubForTeam: typeof fetchClubForTeam;
   /** Ort eines Vereins suchen (Google Places), z. B. "TSV 1865 Dachau Sportplatz" */
   locate: (query: string) => Promise<{ location: LatLng; address?: string } | null>;
+  /** Grobe Verortung ohne Kosten (nur Ortsname); undefined = nicht verfügbar. */
+  locateCoarse: (clubName: string) => Promise<LatLng | null | undefined>;
 }
 
 const defaultDeps: DiscoveryDeps = {
@@ -81,6 +92,7 @@ const defaultDeps: DiscoveryDeps = {
   fetchTeamMatches: fetchTeamMatchesCached,
   fetchClubForTeam,
   locate: findPlace,
+  locateCoarse: findTownCoarse,
 };
 
 async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
@@ -200,8 +212,35 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
   // Eine Suche genügt: findPlace probiert selbst Google (Sportplatz) und OpenStreetMap (Ort) durch
   const locateClub = (name: string) => deps.locate(`${name} Sportplatz`);
 
+  /** Grob verortete Vereine der Wanderung (nicht gespeichert – nur für die Richtung) */
+  const walkLoc = new Map<string, LatLng | null>();
+
+  /**
+   * Nachbar auf der Wanderung: erst kostenlos grob über den Ortsnamen verorten und nur
+   * Vereine in Zielnähe genau suchen (Google). So kostet die Wanderung kaum Places-Anfragen.
+   */
+  const considerForWalk = async (id: string) => {
+    const c = club(id);
+    if (c.location !== undefined && isFresh(c.locatedAt, now)) {
+      enqueue(c);
+      return;
+    }
+    if (!hasRealName(c)) return;
+    let coarse = walkLoc.get(id);
+    if (coarse === undefined) {
+      const found = await deps.locateCoarse(c.name);
+      if (found === undefined) {
+        await consider(id, c.name); // kein Ortsverzeichnis – genau verorten
+        return;
+      }
+      coarse = found;
+      walkLoc.set(id, coarse);
+    }
+    if (coarse && haversineKm(center, coarse) <= limitKm + WALK_PRECISE_MARGIN_KM) await consider(id, c.name);
+  };
+
   /** Mannschaften eines Vereins laden und Nachbarn einsammeln. */
-  const expand = async (id: string) => {
+  const expand = async (id: string, mode: 'area' | 'walk' = 'area') => {
     const c = club(id);
     step = `Erkunde ${c.name}`;
     report();
@@ -256,6 +295,7 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
 
     // Nachbarn verorten und vormerken
     await pool(c.neighbors ?? [], CONCURRENCY, async (nid) => {
+      if (mode === 'walk') return considerForWalk(nid);
       const n = club(nid);
       await consider(nid, n.name === nid ? '' : n.name);
     });
@@ -319,6 +359,55 @@ export async function discoverArea(opts: DiscoveryOptions): Promise<AreaIndex> {
       collectNeighbors(res.matches, seedClub ?? '', teamId, neighbors, seenTeams, teamsWithoutClub, stats);
       await pool([...neighbors], CONCURRENCY, ([nid, nname]) => consider(nid, nname));
     }
+  }
+
+  // Nichts bekannt und kein Startpunkt → eingebauten Startverein nehmen (nicht erzwungen:
+  // liegt er weit weg, wandert die Erkundung unten von ihm aus in die gewählte Gegend)
+  const knowsAnyClub = Object.values(index.clubs).some((c) => c.location);
+  if (!opts.seed && !knowsAnyClub) {
+    for (const fb of opts.fallbackSeeds ?? []) {
+      throwIfAborted(signal);
+      try {
+        if (fb.kind === 'club') {
+          await consider(fb.id, '');
+        } else {
+          let teamId = fb.id;
+          if (fb.kind === 'competition') {
+            const { teams } = await deps.fetchCompetitionTeams(fb.id, signal);
+            if (!teams.length) continue;
+            teamId = teams[0].permanentId;
+          }
+          const res = await deps.fetchTeamMatches(teamId, signal);
+          if (res.team?.clubId) await consider(res.team.clubId, res.team.clubName ?? '');
+        }
+        if (Object.values(index.clubs).some((c) => c.location)) break;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError' || signal.aborted) throw err;
+        // veralteter Startpunkt – nächsten probieren
+      }
+    }
+  }
+
+  // ─── Wanderung ───────────────────────────────────────────────────────────
+  // Kein Verein im Umkreis bekannt: Schritt für Schritt immer den Verein erkunden, der dem
+  // gewählten Standort am nächsten liegt. Da Ligen regional sind, kommt man so von jedem
+  // Verein in Bayern in wenigen Schritten in die gewünschte Gegend.
+  const walked = new Set<string>();
+  for (let hop = 0; queue.length === 0 && hop < MAX_WALK_HOPS; hop++) {
+    throwIfAborted(signal);
+    let best: { id: string; km: number } | null = null;
+    for (const c of Object.values(index.clubs)) {
+      if (walked.has(c.id)) continue;
+      const loc = c.location ?? walkLoc.get(c.id);
+      if (!loc) continue;
+      const km = haversineKm(center, loc);
+      if (!best || km < best.km) best = { id: c.id, km };
+    }
+    if (!best) break;
+    walked.add(best.id);
+    step = `Suche den Weg in deine Gegend – noch ca. ${Math.round(best.km)} km`;
+    report();
+    await expand(best.id, 'walk');
   }
 
   if (queue.length === 0) {

@@ -270,6 +270,18 @@ export async function findPlace(query: string): Promise<FoundPlace | null> {
   return entry.p ? { location: entry.p, address: entry.a, name: entry.n } : null;
 }
 
+/**
+ * Grobe, kostenlose Verortung eines Vereins: nur über den Ortsnamen im Vereinsnamen und das
+ * mitgelieferte OSM-Ortsverzeichnis – keine Google- oder Netzwerkanfrage pro Verein.
+ * undefined = Ortsverzeichnis nicht verfügbar, null = Ort nicht gefunden.
+ */
+export async function findTownCoarse(clubName: string): Promise<LatLng | null | undefined> {
+  const places = await placeIndexWithin(3000);
+  if (!places) return undefined;
+  const town = townFromClubName(clubName);
+  return lookupPlace(places, town || clubName, getPlaceBias());
+}
+
 interface PlaceResult {
   location?: google.maps.LatLng | null;
   formattedAddress?: string | null;

@@ -8,7 +8,9 @@ import {
 } from '../services/bfv/areaIndex';
 import { loadProgressStore } from '../services/bfv/bfvClient';
 import { discoverArea, type DiscoveryProgress } from '../services/bfv/discovery';
-import type { ParsedSourceInput } from '../services/bfv/sources';
+import { parseSourceInput, type ParsedSourceInput } from '../services/bfv/sources';
+import { config } from '../config';
+import { readJson } from '../utils/storage';
 import type { LatLng } from '../types/match';
 
 /**
@@ -39,6 +41,7 @@ export function useAreaDiscovery() {
           center,
           radiusKm,
           seed,
+          fallbackSeeds: fallbackSeeds(),
           signal: controller.signal,
           onProgress: setProgress,
           // Zwischenstand sichern und gleich anzeigen – Spiele erscheinen schon während der Erkundung
@@ -78,6 +81,19 @@ export function useAreaDiscovery() {
   }, []);
 
   return { index, running, progress, error, start, cancel, reset, clearError: () => setError(null) };
+}
+
+/**
+ * Startpunkte, falls keiner angegeben ist: zuletzt eingegebener Vereins-Link aus diesem
+ * Browser, dann die eingebauten (config.bfvFallbackSeeds).
+ */
+function fallbackSeeds(): ParsedSourceInput[] {
+  const stored = readJson<unknown>('bfv.seed.v1', '');
+  const inputs = [typeof stored === 'string' ? stored : '', ...config.bfvFallbackSeeds];
+  const seen = new Set<string>();
+  return inputs
+    .map((s) => parseSourceInput(s))
+    .filter((s): s is ParsedSourceInput => !!s && !seen.has(s.id) && !!seen.add(s.id));
 }
 
 /** Fortschritt beim Laden der Spielpläne ("120 / 640 Mannschaften"). */

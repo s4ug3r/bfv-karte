@@ -13,8 +13,6 @@ interface Props {
   index: AreaIndex;
   radiusKm: number;
   covered: boolean;
-  /** Kennt das Verzeichnis schon Vereine im aktuellen Umkreis? (Dann ist kein Startpunkt nötig.) */
-  hasClubsNearby: boolean;
   googleReady: boolean;
   running: boolean;
   progress: DiscoveryProgress | null;
@@ -36,25 +34,17 @@ export function AreaPanel(p: Props) {
   );
   const [seedError, setSeedError] = useState<string | null>(null);
   const stats = indexStats(p.index);
-  const needsSeed = !p.hasClubsNearby;
   const minutes = estimateMinutes(p.radiusKm);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setSeedError(null);
-    let seed: ParsedSourceInput | undefined;
-    if (seedInput.trim()) {
-      const parsed = parseSourceInput(seedInput);
-      if (!parsed) {
-        setSeedError('Keine BFV-ID gefunden. Füge den Link einer Vereins- oder Mannschaftsseite von bfv.de ein.');
-        return;
-      }
-      seed = parsed;
-    } else if (needsSeed) {
-      setSeedError('Für die erste Erkundung brauchst du einen Startpunkt aus deiner Nähe.');
+    const parsed: ParsedSourceInput | null = parseSourceInput(seedInput);
+    if (!parsed) {
+      setSeedError('Keine BFV-ID gefunden. Füge den Link einer Vereins- oder Mannschaftsseite von bfv.de ein.');
       return;
     }
-    p.onStart(seed);
+    p.onStart(parsed);
   };
 
 
@@ -118,53 +108,58 @@ export function AreaPanel(p: Props) {
               </button>
             </div>
           ) : (
-            <form onSubmit={submit} className="space-y-2 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200">
-              <p className="text-sm text-amber-900">
+            <div className="space-y-2.5 rounded-xl bg-bfv-50 p-3 ring-1 ring-bfv-100">
+              <p className="text-sm text-bfv-900">
                 {stats.clubs === 0 ? (
                   <>
-                    <strong>Einmalig:</strong> Die App sucht selbst alle Vereine im Umkreis von {p.radiusKm} km. Sie
-                    braucht dafür nur einen Startpunkt – einen Verein oder eine Mannschaft aus deiner Nähe.
+                    <strong>Einmalig:</strong> Die App sucht selbst alle Vereine im Umkreis von {p.radiusKm} km –
+                    ganz ohne Eingabe. Beim ersten Mal dauert das ein paar Minuten.
                   </>
                 ) : (
                   <>Dieser Umkreis ({p.radiusKm} km) ist noch nicht vollständig erkundet.</>
                 )}
               </p>
-
-              {(needsSeed || seedInput) && (
-                <div className="relative">
-                  <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    aria-label="bfv.de-Link eines Vereins oder einer Mannschaft"
-                    className={`${inputClass} pl-9`}
-                    placeholder="bfv.de-Link eines Vereins aus der Nähe"
-                    value={seedInput}
-                    onChange={(e) => setSeedInput(e.target.value)}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </div>
-              )}
-              {needsSeed && (
-                <p className="text-[11px] leading-relaxed text-amber-800">
-                  So geht’s: Auf bfv.de deinen Verein (oder irgendeinen Verein in der Nähe) öffnen und die Adresse aus
-                  der Browserzeile hier einfügen, z. B. <span className="break-all">bfv.de/vereine/…/…</span>
-                </p>
-              )}
-              {seedError && (
-                <p role="alert" className="text-xs text-red-600">
-                  {seedError}
-                </p>
-              )}
-
-              <button type="submit" className={`${buttonHighlight} w-full`}>
-                Umgebung erkunden (ca. {minutes} Min.)
+              <button type="button" className={`${buttonHighlight} w-full`} onClick={() => p.onStart()}>
+                {stats.clubs === 0 ? 'Umgebung erkunden' : `Umgebung erkunden (ca. ${minutes} Min.)`}
               </button>
               {p.radiusKm >= 50 && (
-                <p className="text-[11px] text-amber-800">
+                <p className="text-[11px] text-bfv-800">
                   Bei {p.radiusKm} km sind es schnell mehrere hundert Vereine. Ein kleinerer Radius ist deutlich schneller.
                 </p>
               )}
-            </form>
+
+              <details className="group rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600 ring-1 ring-bfv-100" open={!!seedError}>
+                <summary className="cursor-pointer select-none font-medium text-bfv-800">
+                  Optional: eigenen Verein angeben (geht schneller)
+                </summary>
+                <form onSubmit={submit} className="mt-2 space-y-2">
+                  <div className="relative">
+                    <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      aria-label="bfv.de-Link eines Vereins oder einer Mannschaft"
+                      className={`${inputClass} pl-9`}
+                      placeholder="bfv.de-Link eines Vereins aus der Nähe"
+                      value={seedInput}
+                      onChange={(e) => setSeedInput(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    Auf bfv.de deinen Verein öffnen und die Adresse aus der Browserzeile hier einfügen, z. B.{' '}
+                    <span className="break-all">bfv.de/vereine/…/…</span>
+                  </p>
+                  {seedError && (
+                    <p role="alert" className="text-xs text-red-600">
+                      {seedError}
+                    </p>
+                  )}
+                  <button type="submit" className={`${buttonSecondary} w-full`}>
+                    Mit diesem Verein starten
+                  </button>
+                </form>
+              </details>
+            </div>
           )}
         </>
       )}
