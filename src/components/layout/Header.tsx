@@ -1,9 +1,11 @@
+import { IconBall } from '../ui';
+
 /**
  * Kopfzeile in BFV-Blau mit dem bayerischen Rautenmuster (Hellblau wie im BFV-Logo).
  */
 export function Header() {
   return (
-    <header className="relative z-20 shrink-0 overflow-hidden bg-bfv-700 text-white">
+    <header className="sticky top-0 z-30 shrink-0 overflow-hidden bg-gradient-to-r from-bfv-800 via-bfv-700 to-bfv-700 pt-[env(safe-area-inset-top)] text-white shadow-md shadow-bfv-950/10 lg:relative lg:shadow-none">
       {/* Rautenmuster, zum rechten Rand hin auslaufend – rein dekorativ */}
       <svg
         className="pointer-events-none absolute inset-y-0 right-0 h-full w-2/3 text-raute"
@@ -24,11 +26,16 @@ export function Header() {
         </defs>
         <rect width="100%" height="100%" fill="url(#rauten)" mask="url(#rauten-mask)" />
       </svg>
-      <div className="relative flex items-baseline gap-3 px-4 py-3 sm:px-5 sm:py-4">
-        <h1 className="font-display text-[26px] font-bold leading-none tracking-wide sm:text-3xl">
-          BFV Spiele in der Nähe
-        </h1>
-        <p className="hidden text-sm text-white/80 sm:block">Wer heute in deiner Gegend spielt</p>
+      <div className="relative flex h-14 items-center gap-2.5 px-4 sm:h-16 sm:px-5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25 sm:h-9 sm:w-9">
+          <IconBall width={20} height={20} />
+        </span>
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-[22px] font-bold leading-none tracking-wide sm:text-[28px]">
+            BFV Spiele in der Nähe
+          </h1>
+          <p className="mt-0.5 hidden text-xs text-white/75 sm:block">Wer heute in deiner Gegend spielt</p>
+        </div>
       </div>
     </header>
   );

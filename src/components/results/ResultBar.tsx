@@ -30,7 +30,7 @@ export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewCh
           </>
         )}
       </p>
-      <div className="w-full">
+      <div className="hidden w-full lg:block">
         <Segmented<ViewMode>
           label="Ansicht"
           size="sm"

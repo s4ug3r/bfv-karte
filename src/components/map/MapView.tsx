@@ -179,6 +179,25 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matches]);
 
+  // ─── Sichtbar werden ─────────────────────────────────────────────────────
+  // War die Karte beim Start ausgeblendet (Handy: Listen-Tab), hat fitBounds mit Größe 0
+  // gerechnet. Sobald der Container eine Größe bekommt, den Umkreis neu einpassen.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let wasHidden = el.clientWidth === 0 || el.clientHeight === 0;
+    const ro = new ResizeObserver(() => {
+      const hidden = el.clientWidth === 0 || el.clientHeight === 0;
+      if (wasHidden && !hidden) {
+        const bounds = circleRef.current?.getBounds();
+        if (bounds && !openIdRef.current) mapRef.current?.fitBounds(bounds, 24);
+      }
+      wasHidden = hidden;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useImperativeHandle(ref, () => ({
     focusMatch: (id: string) => {
       const map = mapRef.current;

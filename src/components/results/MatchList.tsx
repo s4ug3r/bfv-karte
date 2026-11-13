@@ -30,7 +30,7 @@ export function MatchList({ matches, origin, mapAvailable, activeId, onShowOnMap
         <section key={day} aria-labelledby={`day-${day}`}>
           <h2
             id={`day-${day}`}
-            className="sticky top-0 z-10 -mx-1 mb-2 flex items-baseline justify-between border-b-2 border-bfv-700 bg-kreide/95 px-1 pb-1 pt-2 backdrop-blur"
+            className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 lg:top-0 mb-2 flex items-baseline justify-between border-b-2 border-bfv-700 bg-kreide/95 px-1 pb-1 pt-2 backdrop-blur"
           >
             <span className="font-display text-xl font-semibold text-bfv-800">{formatDayHeading(day)}</span>
             <span className="text-xs font-medium text-slate-500">

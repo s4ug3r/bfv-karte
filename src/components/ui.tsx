@@ -50,6 +50,9 @@ export const IconAlert = (p: IconProps) => (
 export const IconX = (p: IconProps) => (
   <svg {...base(p)}><path d="M18 6 6 18M6 6l12 12" /></svg>
 );
+export const IconSliders = (p: IconProps) => (
+  <svg {...base(p)}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+);
 export const IconBall = (p: IconProps) => (
   <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="m12 7 4 3-1.5 4.5h-5L8 10l4-3Z" /><path d="M12 3v4M16 10l4.5-1.5M14.5 14.5l2.5 4M9.5 14.5 7 18.5M8 10 3.5 8.5" /></svg>
 );
@@ -80,8 +83,8 @@ export function Segmented<T extends string | number>({
             aria-checked={active}
             title={o.title}
             onClick={() => onChange(o.value)}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition
-              ${size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition
+              ${size === 'sm' ? 'min-h-9 px-1.5 py-1.5 text-xs sm:px-2' : 'min-h-10 px-3 py-2 text-sm'}
               ${active ? 'bg-white text-bfv-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}`}
           >
             {o.label}
@@ -110,8 +113,9 @@ export function Spinner({ className = '' }: { className?: string }) {
   );
 }
 
+/* text-base auf dem Handy: iOS zoomt sonst beim Antippen in Felder unter 16 px hinein. */
 export const inputClass =
-  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-bfv-600 focus:outline-none focus:ring-2 focus:ring-bfv-600/20';
+  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-bfv-600 focus:outline-none focus:ring-2 focus:ring-bfv-600/20';
 
 export const buttonPrimary =
   'inline-flex items-center justify-center gap-2 rounded-xl bg-bfv-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-bfv-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';

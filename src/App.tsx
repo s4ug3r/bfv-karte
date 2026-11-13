@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FilterPanel, TIME_PRESETS } from './components/filters/FilterPanel';
 import { Footer } from './components/layout/Footer';
 import { Header } from './components/layout/Header';
+import { MobileNav, type MobileTab } from './components/layout/MobileNav';
 import { GeolocationDialog } from './components/location/GeolocationDialog';
 import { LocationPanel } from './components/location/LocationPanel';
 import { MapPanel } from './components/map/MapPanel';
@@ -74,6 +75,8 @@ export default function App() {
   );
   const [googleConsent, setGoogleConsent] = usePersistentState<boolean>('bfv.consent.googleMaps', false, (v) => v === true);
   const [view, setView] = useState<ViewMode>('beides');
+  // Handy: Liste oder Vollbild-Karte (untere Leiste); Desktop nutzt `view`.
+  const [tab, setTab] = useState<MobileTab>('liste');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -83,6 +86,7 @@ export default function App() {
 
   const mapRef = useRef<MapViewHandle>(null);
   const mapSectionRef = useRef<HTMLElement>(null);
+  const filterToggleRef = useRef<HTMLButtonElement>(null);
 
   const maps = useGoogleMaps(googleConsent);
   const googleReady = maps.status === 'ready';
@@ -112,19 +116,35 @@ export default function App() {
   const showOnMap = useCallback(
     (id: string) => {
       setActiveId(id);
-      const wasHidden = view === 'liste';
-      if (wasHidden) setView('beides');
+      const desktop = isDesktop();
+      const wasHidden = desktop ? view === 'liste' : tab !== 'karte';
+      if (desktop && wasHidden) setView('beides');
+      if (!desktop) setTab('karte');
       // Kurz warten, bis die (evtl. eben eingeblendete) Karte ihr Layout hat
-      window.setTimeout(
-        () => {
-          if (!isDesktop()) mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          mapRef.current?.focusMatch(id);
-        },
-        wasHidden ? 150 : 0,
-      );
+      window.setTimeout(() => mapRef.current?.focusMatch(id), wasHidden ? 150 : 0);
     },
-    [view],
+    [view, tab],
   );
+
+  const changeTab = (t: MobileTab) => {
+    if (t === tab && t === 'liste' && !filtersOpen) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setTab(t);
+    setFiltersOpen(false);
+    if (t === 'liste') window.scrollTo({ top: 0 });
+  };
+
+  const openFilters = () => {
+    if (tab === 'liste' && filtersOpen) {
+      setFiltersOpen(false);
+      return;
+    }
+    setTab('liste');
+    setFiltersOpen(true);
+    window.setTimeout(() => filterToggleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
 
   const extraAgeClasses = useMemo(
     () => [...new Set(result.inArea.map((m) => m.ageClass).filter((a): a is string => !!a))],
@@ -214,19 +234,24 @@ export default function App() {
 
   const listHidden = view === 'karte';
   const mapHidden = view === 'liste';
+  const onMapTab = tab === 'karte';
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
       <Header />
 
       <main
-        className={`flex flex-1 flex-col lg:grid lg:min-h-0 ${
+        className={`flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:grid lg:pb-0 lg:min-h-0 ${
           mapHidden ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(380px,460px)_1fr]'
         }`}
       >
         {/* Mobil: "contents" lässt Steuerung, Karte und Liste per order sortieren; Desktop: scrollbare Seitenleiste */}
         <aside className="contents lg:block lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200">
-          <div className={`order-1 space-y-4 p-4 sm:p-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
+          <div
+            className={`order-1 space-y-4 p-4 sm:p-5 ${onMapTab ? 'hidden lg:block' : ''} ${
+              mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''
+            }`}
+          >
 
             <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
               <LocationPanel
@@ -241,8 +266,9 @@ export default function App() {
               />
 
               <button
+                ref={filterToggleRef}
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 lg:hidden"
+                className={`${filtersOpen ? '' : 'mb-0'} flex min-h-11 w-full scroll-mt-20 items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 lg:hidden`}
                 aria-expanded={filtersOpen}
                 aria-controls="filter-panel"
                 onClick={() => setFiltersOpen((o) => !o)}
@@ -307,7 +333,7 @@ export default function App() {
           </div>
 
           <div
-            className={`order-3 px-4 pb-6 sm:px-5 ${listHidden ? 'hidden' : ''} ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''} ${
+            className={`order-3 px-4 pb-6 sm:px-5 ${onMapTab ? 'hidden' : 'block'} ${listHidden ? 'lg:hidden' : 'lg:block'} ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''} ${
               result.isPlaceholder ? 'opacity-60 transition-opacity' : ''
             }`}
           >
@@ -326,13 +352,11 @@ export default function App() {
         <section
           ref={mapSectionRef}
           aria-label="Karte"
-          className={`order-2 scroll-mt-2 px-4 sm:px-5 lg:p-0 ${mapHidden ? 'hidden' : ''}`}
+          className={`order-2 ${onMapTab ? 'block' : 'hidden'} ${mapHidden ? 'lg:hidden' : 'lg:block'}
+            fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20
+            lg:static lg:inset-auto lg:z-auto lg:min-h-0`}
         >
-          <div
-            className={`overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 lg:h-full lg:rounded-none lg:shadow-none lg:ring-0 ${
-              listHidden ? 'h-[72vh]' : 'h-[55vh] min-h-[320px]'
-            } mb-4 lg:mb-0`}
-          >
+          <div className="relative h-full overflow-hidden">
             <MapPanel
               ref={mapRef}
               status={maps.status}
@@ -343,9 +367,36 @@ export default function App() {
               onConsent={() => setGoogleConsent(true)}
               onRetry={maps.retry}
             />
+            {/* Handy: kurze Zusammenfassung über der Karte */}
+            {googleReady && (
+              <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center px-14 lg:hidden">
+                <p className="max-w-full truncate rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-200">
+                  {result.isLoading ? (
+                    'Spiele werden gesucht…'
+                  ) : (
+                    <>
+                      <span className="text-bfv-700">
+                        {result.matches.length} {result.matches.length === 1 ? 'Spiel' : 'Spiele'}
+                      </span>{' '}
+                      · {filters.radiusKm} km um {location.label}
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </main>
+
+      <MobileNav
+        tab={tab}
+        count={result.matches.length}
+        loading={result.isLoading}
+        filterCount={userFilterCount}
+        filtersOpen={filtersOpen}
+        onTabChange={changeTab}
+        onFilters={openFilters}
+      />
 
       <GeolocationDialog
         open={geoDialogOpen}

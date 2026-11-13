@@ -32,31 +32,37 @@ export function LocationPanel(props: Props) {
         </p>
       )}
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button type="button" className={buttonSecondary} onClick={props.onUseMyLocation} disabled={locating}>
-          {locating ? <Spinner /> : <IconLocate />}
-          {locating ? 'Standort wird ermittelt…' : 'Meinen Standort verwenden'}
+      <div className="mt-2 flex items-stretch gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-bfv-50 px-3 py-2 text-sm text-bfv-900 ring-1 ring-bfv-100">
+          <IconPin className="shrink-0 text-bfv-700" />
+          <span className="min-w-0 flex-1">
+            <span className="sr-only">Aktueller Standort: </span>
+            <span className="font-semibold break-words">{location.label}</span>
+            {location.source === 'geolocation' && <span className="text-bfv-700"> (per GPS)</span>}
+          </span>
+          {location.source !== 'default' && (
+            <button
+              type="button"
+              onClick={props.onResetLocation}
+              className="-mr-1 shrink-0 rounded-lg p-1.5 text-bfv-700 hover:bg-bfv-100"
+              aria-label="Standort zurücksetzen auf Dachau"
+              title="Zurück zu Dachau"
+            >
+              <IconX width={16} height={16} />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className={`${buttonSecondary} min-h-11 min-w-11 shrink-0 px-3`}
+          onClick={props.onUseMyLocation}
+          disabled={locating}
+          aria-label={locating ? 'Standort wird ermittelt' : 'Meinen Standort verwenden'}
+          title="Meinen Standort verwenden"
+        >
+          {locating ? <Spinner /> : <IconLocate className="text-bfv-700" />}
+          <span className="hidden sm:inline">{locating ? 'Ortung…' : 'Mein Standort'}</span>
         </button>
-      </div>
-
-      <div className="mt-2 flex items-start gap-2 rounded-xl bg-bfv-50 px-3 py-2 text-sm text-bfv-900">
-        <IconPin className="mt-0.5 shrink-0" />
-        <span className="min-w-0 flex-1">
-          <span className="sr-only">Aktueller Standort: </span>
-          <span className="font-medium break-words">{location.label}</span>
-          {location.source === 'geolocation' && <span className="text-bfv-700"> (per GPS)</span>}
-        </span>
-        {location.source !== 'default' && (
-          <button
-            type="button"
-            onClick={props.onResetLocation}
-            className="shrink-0 rounded-md p-0.5 text-bfv-700 hover:bg-bfv-100"
-            aria-label="Standort zurücksetzen auf Dachau"
-            title="Zurück zu Dachau"
-          >
-            <IconX width={16} height={16} />
-          </button>
-        )}
       </div>
 
       {geoError && (
