@@ -80,9 +80,9 @@ export function Segmented<T extends string | number>({
             aria-checked={active}
             title={o.title}
             onClick={() => onChange(o.value)}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition
-              ${size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'}
-              ${active ? 'bg-white text-bfv-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}`}
+            className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600
+              ${size === 'sm' ? 'min-h-9 px-1.5 py-1.5 text-xs' : 'min-h-10 px-2 py-2 text-sm'}
+              ${active ? 'bg-white text-bfv-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 active:bg-white/80'}`}
           >
             {o.label}
           </button>
@@ -111,13 +111,13 @@ export function Spinner({ className = '' }: { className?: string }) {
 }
 
 export const inputClass =
-  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-bfv-600 focus:outline-none focus:ring-2 focus:ring-bfv-600/20';
+  'min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 sm:text-sm placeholder:text-slate-400 shadow-sm focus:border-bfv-600 focus:outline-none focus:ring-2 focus:ring-bfv-600/20';
 
 export const buttonPrimary =
-  'inline-flex items-center justify-center gap-2 rounded-xl bg-bfv-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-bfv-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center gap-2 min-h-11 rounded-xl bg-bfv-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-bfv-800 active:bg-bfv-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
 
 export const buttonSecondary =
-  'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-bfv-600 disabled:cursor-not-allowed disabled:opacity-50';
 
 /** Hauptaktion einer Seite – groß, in BFV-Blau. */
 export const buttonHighlight =

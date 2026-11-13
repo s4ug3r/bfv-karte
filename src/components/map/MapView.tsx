@@ -99,7 +99,21 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
       clickable: false,
     });
 
+    // War die Karte beim Setzen von Standort/Radius ausgeblendet (Ansicht "Liste"), hatte sie
+    // keine Größe und fitBounds lieferte einen falschen Ausschnitt. Beim Einblenden neu einpassen.
+    let wasHidden = containerRef.current.clientWidth === 0;
+    const observer = new ResizeObserver(([entry]) => {
+      const hidden = entry.contentRect.width === 0 || entry.contentRect.height === 0;
+      if (wasHidden && !hidden) {
+        const bounds = circleRef.current?.getBounds();
+        if (bounds) map.fitBounds(bounds, 24);
+      }
+      wasHidden = hidden;
+    });
+    observer.observe(containerRef.current);
+
     return () => {
+      observer.disconnect();
       clustererRef.current?.clearMarkers();
       clustererRef.current?.setMap(null);
       circleRef.current?.setMap(null);

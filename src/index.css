@@ -24,8 +24,14 @@ body,
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   @apply bg-kreide text-slate-900 antialiased;
+  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 

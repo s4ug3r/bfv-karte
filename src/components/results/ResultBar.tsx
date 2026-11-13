@@ -3,7 +3,8 @@ import { IconList, IconMap, IconSplit, Segmented, Spinner } from '../ui';
 export type ViewMode = 'beides' | 'karte' | 'liste';
 
 interface Props {
-  count: number;
+  /** null = noch keine Aussage möglich (z. B. Umgebung nicht erkundet) */
+  count: number | null;
   radiusKm: number;
   loading: boolean;
   refreshing: boolean;
@@ -16,7 +17,9 @@ export function ResultBar({ count, radiusKm, loading, refreshing, view, onViewCh
   return (
     <div className="flex flex-col gap-2.5">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-slate-600" aria-live="polite">
-        {loading ? (
+        {count === null ? (
+          <span className="font-display text-2xl font-semibold leading-none text-slate-500">Noch keine Spiele</span>
+        ) : loading ? (
           <>
             <Spinner className="text-bfv-700" /> Spiele werden gesucht…
           </>

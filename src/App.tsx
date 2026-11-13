@@ -220,13 +220,13 @@ export default function App() {
       <Header />
 
       <main
-        className={`flex flex-1 flex-col lg:grid lg:min-h-0 ${
+        className={`flex flex-1 flex-col lg:grid lg:min-h-0 lg:grid-rows-1 ${
           mapHidden ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(380px,460px)_1fr]'
         }`}
       >
         {/* Mobil: "contents" lässt Steuerung, Karte und Liste per order sortieren; Desktop: scrollbare Seitenleiste */}
-        <aside className="contents lg:block lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200">
-          <div className={`order-1 space-y-4 p-4 sm:p-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
+        <aside className="contents lg:relative lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-r lg:border-slate-200 lg:bg-kreide">
+          <div className={`order-1 space-y-4 px-[max(1rem,env(safe-area-inset-left))] pt-4 sm:px-5 sm:pt-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
 
             <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
               <LocationPanel
@@ -242,18 +242,18 @@ export default function App() {
 
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 lg:hidden"
+                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition active:bg-slate-100 lg:hidden"
                 aria-expanded={filtersOpen}
                 aria-controls="filter-panel"
                 onClick={() => setFiltersOpen((o) => !o)}
               >
-                <span className="flex items-center gap-2">
-                  <IconFilter /> Filter: {filters.radiusKm} km, {TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label}
+                <span className="flex min-w-0 items-center gap-2">
+                  <IconFilter className="shrink-0" /> <span className="truncate">Filter: {filters.radiusKm} km, {TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label}</span>
                   {userFilterCount > 0 && (
-                    <span className="rounded-full bg-bfv-700 px-1.5 text-[11px] text-white">{userFilterCount}</span>
+                    <span className="rounded-full bg-bfv-700 px-1.5 text-[11px] leading-[18px] text-white">{userFilterCount}</span>
                   )}
                 </span>
-                <span aria-hidden className={`transition ${filtersOpen ? 'rotate-180' : ''}`}>▾</span>
+                <span aria-hidden className={`shrink-0 transition ${filtersOpen ? 'rotate-180' : ''}`}>▾</span>
               </button>
               <div id="filter-panel" className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
                 <FilterPanel
@@ -285,7 +285,7 @@ export default function App() {
             )}
 
             <ResultBar
-              count={result.matches.length}
+              count={needsDiscovery ? null : result.matches.length}
               radiusKm={filters.radiusKm}
               loading={result.isLoading}
               refreshing={result.isFetching && !result.isLoading}
@@ -307,7 +307,7 @@ export default function App() {
           </div>
 
           <div
-            className={`order-3 px-4 pb-6 sm:px-5 ${listHidden ? 'hidden' : ''} ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''} ${
+            className={`order-3 px-[max(1rem,env(safe-area-inset-left))] pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-5 ${listHidden ? 'hidden' : ''} ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''} ${
               result.isPlaceholder ? 'opacity-60 transition-opacity' : ''
             }`}
           >
@@ -326,12 +326,12 @@ export default function App() {
         <section
           ref={mapSectionRef}
           aria-label="Karte"
-          className={`order-2 scroll-mt-2 px-4 sm:px-5 lg:p-0 ${mapHidden ? 'hidden' : ''}`}
+          className={`order-2 scroll-mt-2 px-[max(1rem,env(safe-area-inset-left))] pt-4 sm:px-5 lg:p-0 ${mapHidden ? 'hidden' : ''}`}
         >
           <div
             className={`overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 lg:h-full lg:rounded-none lg:shadow-none lg:ring-0 ${
-              listHidden ? 'h-[72vh]' : 'h-[55vh] min-h-[320px]'
-            } mb-4 lg:mb-0`}
+              googleReady ? (listHidden ? 'h-[calc(100dvh-7rem)] min-h-[360px]' : 'h-[55dvh] min-h-[320px]') : ''
+            }`}
           >
             <MapPanel
               ref={mapRef}

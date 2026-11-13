@@ -27,8 +27,8 @@ export const MapPanel = forwardRef<MapViewHandle, Props>(function MapPanel(props
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-bfv-50 p-6">
-      <div className="max-w-sm rounded-2xl bg-white/95 p-6 text-center shadow-lg ring-1 ring-slate-200">
+    <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-br from-bfv-50 to-bfv-100/60 p-3 sm:p-6">
+      <div className="w-full max-w-sm rounded-2xl bg-white/95 p-5 text-center shadow-lg ring-1 ring-slate-200 sm:p-6">
         {status === 'loading' && (
           <div className="flex flex-col items-center gap-3 text-slate-600">
             <Spinner className="h-6 w-6 text-bfv-700" />

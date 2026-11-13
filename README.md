@@ -96,7 +96,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 - **Umkreis:** 5 / 10 / 20 / 30 / 50 / 100 km – als Kreis auf der Karte dargestellt.
 - **Filter:** Alle / Herren / Jugend (mit Trefferzählern), Zeitraum (Heute, Dieses Wochenende, 7/14/30 Tage, eigener Zeitraum), Altersklasse U7–U19 bzw. Ligastufe (Bayernliga … B-Klasse), Freitext für Verein, Liga oder Ort.
 - **Karte:** Marker in **Blau (Herren, „H“)**, **Grün (Jugend, „J“)**, **Grau (unklar, „?“)**, Marker-Clustering, InfoWindow mit Datum/Uhrzeit, Paarung, Liga, Spielstätte, Entfernung, „Route öffnen“ und BFV-Link. Mehrere Spiele auf derselben Anlage werden minimal versetzt, damit jedes anklickbar bleibt.
-- **Liste:** nach Spieltag gruppiert, sortiert nach Anstoß (dann Entfernung), mit „Auf Karte zeigen“ (zentriert + öffnet InfoWindow) und „Route öffnen“.
+- **Liste:** nach Spieltag gruppiert, sortiert nach Anstoß (dann Entfernung), mit „Auf Karte“ (zentriert + öffnet InfoWindow; nur sichtbar, wenn die Karte geladen ist), „Route“ und Link zu bfv.de.
 - **Ansichten:** Beides / Karte / Liste – mobil untereinander, ab 1024 px nebeneinander.
 - **Zustände:** Skeleton beim Laden, Fehler mit „Erneut versuchen“, leere Ergebnisse mit Ein-Klick-Vorschlägen (Umkreis erweitern, 30 Tage, Filter zurücksetzen), Hinweis bei nicht verortbaren Spielen, Weiterverwendung des Caches bei Netzwerkfehlern.
 
@@ -289,6 +289,6 @@ public/_redirects, vercel.json  Proxys /bfv-api → widget-prod.bfv.de und /bfv-
 
 - Die BFV-Widget-Schnittstelle ist **inoffiziell**; Änderungen beim BFV können den Abruf brechen. Dann `bfv-api` aktualisieren (`npm update bfv-api`).
 - Spielorte sind über den Heimverein **geschätzt** (siehe oben).
-- Entfernungen sind **Luftlinie**; die tatsächliche Fahrstrecke zeigt „Route öffnen“ in Google Maps.
+- Entfernungen sind **Luftlinie**; die tatsächliche Fahrstrecke zeigt „Route“ in Google Maps.
 - Die Herren/Jugend-Heuristik deckt die üblichen BFV-Bezeichnungen ab; liefert die Quelle `category`, wird diese verwendet.
 - Mögliche Erweiterungen: Frauen als eigene Kategorie, Favoriten-Vereine, Kalender-Export (ICS), PWA/Offline-Modus, Fahrzeit statt Luftlinie (Distance Matrix / Routes API).
