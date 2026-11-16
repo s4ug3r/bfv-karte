@@ -236,3 +236,22 @@ export function formatDateKey(key: string): string {
   const p = parseDateKey(key);
   return p ? `${pad(p.day)}.${pad(p.month)}.${p.year}` : key;
 }
+
+/** So lange gilt ein angepfiffenes Spiel als "läuft gerade" (90 min + Pause + Puffer). */
+export const MATCH_RUNNING_MS = 110 * 60 * 1000;
+
+/**
+ * Kurze, relative Anstoßzeit für "Als Nächstes":
+ * "läuft", "in 25 Min.", "heute 15:00", "morgen 11:00", "Sa. 14:00".
+ */
+export function formatRelativeKickoff(iso: string, now: Date = new Date()): string {
+  const kickoff = new Date(iso);
+  const diffMs = kickoff.getTime() - now.getTime();
+  if (diffMs <= 0) return 'läuft';
+  if (diffMs < 60 * 60 * 1000) return `in ${Math.max(1, Math.round(diffMs / 60000))} Min.`;
+  const day = toBerlinDateKey(kickoff);
+  const today = toBerlinDateKey(now);
+  if (day === today) return `heute ${formatTime(iso)}`;
+  if (day === addDaysToKey(today, 1)) return `morgen ${formatTime(iso)}`;
+  return `${formatWeekdayShort(iso)} ${formatTime(iso)}`;
+}

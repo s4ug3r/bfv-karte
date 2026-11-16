@@ -1,5 +1,5 @@
 /** Sichtbare Versionsnummer – zeigt nach dem Hochladen, ob die neue Version läuft. */
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.7.0';
 
 interface Props {
   sourceLabel: string;

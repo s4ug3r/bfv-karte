@@ -45,3 +45,10 @@ root.render(
   </StrictMode>,
 );
 
+
+// Offline-Modus: App-Dateien speichern, damit sie ohne Netz startet (nur im fertigen Build)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('[Offline] Service Worker nicht registriert', err));
+  });
+}

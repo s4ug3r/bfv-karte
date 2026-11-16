@@ -94,6 +94,9 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 
 - **Standort:** Google-Ortssuche (auf Deutschland beschränkt, Bayern bevorzugt), „Meinen Standort verwenden“ (Browser-Geolocation nach Einwilligungsdialog), Standard **Dachau**.
 - **Umkreis:** 5 / 10 / 20 / 30 / 50 / 100 km – als Kreis auf der Karte dargestellt.
+- **Meine Vereine:** Stern neben einem Verein merkt ihn (alle Mannschaften, nur in diesem Browser). Oben erscheinen die nächsten Spiele der gemerkten Vereine; der Schalter „Nur diese zeigen“ filtert Liste und Karte.
+- **Als Nächstes:** Die drei Spiele, die als Nächstes anfangen – laufende Spiele sind mit „läuft“ markiert und bleiben bis ca. 110 Minuten nach Anpfiff sichtbar.
+- **Offline-Modus:** Ein Service Worker (`public/sw.js`) speichert die App-Dateien; ohne Netz startet die App mit den zuletzt geladenen Spielen und einem Hinweisbalken. BFV- und Google-Anfragen laufen nie über diesen Speicher.
 - **Spiel teilen & Kalender:** Jedes Spiel lässt sich per Teilen-Menü (WhatsApp, Signal …) verschicken oder als Termin (.ics) in den Kalender übernehmen.
 - **Als App installierbar:** Web-App-Manifest und Icons – am Handy über „Zum Home-Bildschirm“ wie eine App nutzbar.
 - **Filter:** Alle / Herren / Frauen / Jugend (mit Trefferzählern; Juniorinnen zählen zur Jugend), Zeitraum (Heute, Dieses Wochenende, 7/14/30 Tage, eigener Zeitraum), Altersklasse U7–U19 bzw. Ligastufe (Bayernliga … B-Klasse), Freitext für Verein, Liga oder Ort.

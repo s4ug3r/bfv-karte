@@ -11,6 +11,11 @@ import { MatchList } from './components/results/MatchList';
 import { ResultBar, type ViewMode } from './components/results/ResultBar';
 import { EmptyState, ErrorState, LoadingList, type Suggestion } from './components/results/StatusViews';
 import { AreaPanel } from './components/area/AreaPanel';
+import { FavoritesCard, UpcomingCard } from './components/results/Highlights';
+import { useFavorites } from './hooks/useFavorites';
+import { useNow } from './hooks/useNow';
+import { useOnline } from './hooks/useOnline';
+import { involvesFavorite } from './utils/favorites';
 import { IconFilter } from './components/ui';
 import { config } from './config';
 import { useGeolocation } from './hooks/useGeolocation';
@@ -21,7 +26,7 @@ import { useAreaDiscovery, useLoadProgress } from './hooks/useAreaDiscovery';
 import { clubsInRadius, isAreaCovered } from './services/bfv/areaIndex';
 import { getMatchProvider, usesBfvSources } from './services/providers';
 import { RADIUS_OPTIONS, type Filters, type SelectedLocation } from './types/filters';
-import { formatDateKey } from './utils/date';
+import { MATCH_RUNNING_MS, formatDateKey } from './utils/date';
 
 const DEFAULT_FILTERS: Filters = {
   category: 'alle',
@@ -31,6 +36,7 @@ const DEFAULT_FILTERS: Filters = {
   radiusKm: config.defaultRadiusKm,
   search: '',
   classFilter: '',
+  favoritesOnly: false,
 };
 
 /** Gespeicherte Filter prüfen; Freitextsuche wird bewusst nicht gespeichert. */
@@ -44,6 +50,7 @@ function sanitizeFilters(stored: unknown): Filters {
     customTo: typeof s.customTo === 'string' ? s.customTo : '',
     radiusKm: RADIUS_OPTIONS.includes(s.radiusKm as never) ? s.radiusKm! : DEFAULT_FILTERS.radiusKm,
     classFilter: typeof s.classFilter === 'string' ? s.classFilter : '',
+    favoritesOnly: s.favoritesOnly === true,
   };
 }
 
@@ -93,6 +100,18 @@ export default function App() {
   const geo = useGeolocation();
   const provider = getMatchProvider(area.index);
   const result = useMatches(provider, location, filters, googleReady);
+  const favorites = useFavorites();
+  const online = useOnline();
+  const now = useNow();
+  // "Nur meine Vereine" wirkt auf Liste, Karte und Zähler
+  const shown = useMemo(
+    () => (filters.favoritesOnly ? result.matches.filter((m) => involvesFavorite(m, favorites.keys)) : result.matches),
+    [filters.favoritesOnly, result.matches, favorites.keys],
+  );
+  const notOver = (m: { kickoff: string }) => new Date(m.kickoff).getTime() > now.getTime() - MATCH_RUNNING_MS;
+  // Bei "Nur meine Vereine" zeigt der Vereine-Kasten schon die nächsten Spiele
+  const upcoming = shown.length > 3 && !filters.favoritesOnly ? shown.filter(notOver).slice(0, 3) : [];
+  const favoriteMatches = result.inArea.filter((m) => notOver(m) && involvesFavorite(m, favorites.keys)).slice(0, 3);
   const areaCovered = isAreaCovered(area.index, location, filters.radiusKm);
   const clubsNearby = useMemo(
     () => clubsInRadius(area.index, location, filters.radiusKm).length,
@@ -105,12 +124,12 @@ export default function App() {
   // damit niemand einen Vereins-Link heraussuchen muss
   const autoStarted = useRef(new Set<string>());
   useEffect(() => {
-    if (!needsDiscovery || !googleReady || area.running || area.error) return;
+    if (!needsDiscovery || !googleReady || !online || area.running || area.error) return;
     const key = `${location.lat.toFixed(3)},${location.lng.toFixed(3)},${filters.radiusKm}`;
     if (autoStarted.current.has(key)) return;
     autoStarted.current.add(key);
     void area.start(location, filters.radiusKm);
-  }, [needsDiscovery, googleReady, area, location, filters.radiusKm]);
+  }, [needsDiscovery, googleReady, online, area, location, filters.radiusKm]);
 
   const updateFilters = useCallback(
     (patch: Partial<Filters>) => setStoredFilters((f) => ({ ...f, ...patch })),
@@ -163,7 +182,32 @@ export default function App() {
   );
 
   const userFilterCount =
-    (filters.category !== 'alle' ? 1 : 0) + (filters.classFilter ? 1 : 0) + (filters.search.trim() ? 1 : 0);
+    (filters.category !== 'alle' ? 1 : 0) +
+    (filters.classFilter ? 1 : 0) +
+    (filters.search.trim() ? 1 : 0) +
+    (filters.favoritesOnly ? 1 : 0);
+
+  /** Spiel aus "Als Nächstes"/"Meine Vereine" in der Liste anspringen (Desktop: auch auf der Karte). */
+  const selectMatch = (id: string) => {
+    setActiveId(id);
+    document.getElementById(`match-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (isDesktop() && view !== 'liste') mapRef.current?.focusMatch(id);
+  };
+
+  const highlights = (
+    <div className="mb-4 space-y-3">
+      <UpcomingCard matches={upcoming} now={now} onSelect={selectMatch} />
+      <FavoritesCard
+        favorites={favorites.list}
+        matches={favoriteMatches}
+        onlyFavorites={filters.favoritesOnly}
+        now={now}
+        onToggleOnly={() => updateFilters({ favoritesOnly: !filters.favoritesOnly })}
+        onRemove={favorites.remove}
+        onSelect={selectMatch}
+      />
+    </div>
+  );
 
   // ─── Vorschläge bei leeren Ergebnissen ──────────────────────────────────
   const suggestions: Suggestion[] = [];
@@ -171,7 +215,10 @@ export default function App() {
   if (nextRadius) suggestions.push({ label: `Umkreis auf ${nextRadius} km erweitern`, onClick: () => updateFilters({ radiusKm: nextRadius }) });
   if (filters.timePreset !== '30') suggestions.push({ label: 'Nächste 30 Tage anzeigen', onClick: () => updateFilters({ timePreset: '30' }) });
   if (userFilterCount > 0)
-    suggestions.push({ label: 'Filter zurücksetzen', onClick: () => updateFilters({ category: 'alle', classFilter: '', search: '' }) });
+    suggestions.push({
+      label: 'Filter zurücksetzen',
+      onClick: () => updateFilters({ category: 'alle', classFilter: '', search: '', favoritesOnly: false }),
+    });
 
   // ─── Ergebnisbereich ─────────────────────────────────────────────────────
   let results: ReactNode;
@@ -195,6 +242,14 @@ export default function App() {
         title="Zeitraum liegt in der Vergangenheit"
         text={`Bis ${formatDateKey(filters.customTo)} finden keine Spiele mehr statt. Wähle einen Zeitraum ab heute.`}
         suggestions={[{ label: 'Nächste 7 Tage anzeigen', onClick: () => updateFilters({ timePreset: '7' }) }]}
+      />
+    );
+  } else if (result.isLoading && !online) {
+    results = (
+      <EmptyState
+        title="Keine gespeicherten Spiele"
+        text="Du bist offline, und für diese Auswahl sind noch keine Spiele gespeichert. Sobald du wieder Netz hast, werden sie geladen."
+        suggestions={[]}
       />
     );
   } else if (result.isLoading) {
@@ -223,6 +278,21 @@ export default function App() {
         suggestions={googleConsent ? [] : [{ label: 'Google Maps laden', onClick: () => setGoogleConsent(true) }]}
       />
     );
+  } else if (filters.favoritesOnly && shown.length === 0 && result.matches.length > 0) {
+    results = (
+      <>
+        {highlights}
+        <EmptyState
+          title="Keine Spiele deiner Vereine"
+          text={
+            favorites.list.length === 0
+              ? 'Du hast noch keinen Verein gemerkt. Tippe bei einem Spiel auf den Stern neben dem Verein.'
+              : `Deine Vereine spielen im Umkreis von ${filters.radiusKm} km im gewählten Zeitraum nicht.`
+          }
+          suggestions={[{ label: 'Alle Vereine zeigen', onClick: () => updateFilters({ favoritesOnly: false }) }]}
+        />
+      </>
+    );
   } else if (result.matches.length === 0) {
     results = (
       <EmptyState
@@ -237,13 +307,18 @@ export default function App() {
     );
   } else {
     results = (
-      <MatchList
-        matches={result.matches}
-        origin={location}
-        mapAvailable={googleReady}
-        activeId={activeId}
-        onShowOnMap={showOnMap}
-      />
+      <>
+        {highlights}
+        <MatchList
+          matches={shown}
+          origin={location}
+          mapAvailable={googleReady}
+          activeId={activeId}
+          favoriteKeys={favorites.keys}
+          onToggleFavorite={favorites.toggle}
+          onShowOnMap={showOnMap}
+        />
+      </>
     );
   }
 
@@ -254,6 +329,14 @@ export default function App() {
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
       <Header />
+      {!online && (
+        <div
+          role="status"
+          className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-30 bg-amber-400 px-4 py-1.5 text-center text-xs font-semibold text-amber-950 sm:top-[calc(4rem+env(safe-area-inset-top))] lg:static"
+        >
+          Offline – du siehst die zuletzt geladenen Spiele. Karte und Suche brauchen Netz.
+        </div>
+      )}
 
       <main
         className={`flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:grid lg:pb-0 lg:min-h-0 ${
@@ -325,7 +408,7 @@ export default function App() {
             )}
 
             <ResultBar
-              count={result.matches.length}
+              count={shown.length}
               radiusKm={filters.radiusKm}
               loading={result.isLoading}
               refreshing={result.isFetching && !result.isLoading}
@@ -339,7 +422,7 @@ export default function App() {
                 werden{googleReady ? '' : ' – aktiviere Google Maps, damit Adressen in Koordinaten umgewandelt werden'}.
               </p>
             )}
-            {result.error && result.matches.length > 0 && (
+            {result.error && result.matches.length > 0 && online && (
               <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 Aktualisierung fehlgeschlagen – es werden zwischengespeicherte Spiele angezeigt.
               </p>
@@ -377,7 +460,7 @@ export default function App() {
               error={maps.error}
               location={location}
               radiusKm={filters.radiusKm}
-              matches={result.matches}
+              matches={shown}
               onConsent={() => setGoogleConsent(true)}
               onRetry={maps.retry}
             />
@@ -390,7 +473,7 @@ export default function App() {
                   ) : (
                     <>
                       <span className="text-bfv-700">
-                        {result.matches.length} {result.matches.length === 1 ? 'Spiel' : 'Spiele'}
+                        {shown.length} {shown.length === 1 ? 'Spiel' : 'Spiele'}
                       </span>{' '}
                       · {filters.radiusKm} km um {location.label}
                     </>
@@ -404,7 +487,7 @@ export default function App() {
 
       <MobileNav
         tab={tab}
-        count={result.matches.length}
+        count={shown.length}
         loading={result.isLoading}
         filterCount={userFilterCount}
         filtersOpen={filtersOpen}

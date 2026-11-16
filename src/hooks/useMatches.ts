@@ -4,7 +4,7 @@ import { config } from '../config';
 import { loadMatches, applyUserFilters, countByCategory, filterByAreaAndTime } from '../services/matchService';
 import type { Filters, SelectedLocation } from '../types/filters';
 import type { MatchDataProvider } from '../types/provider';
-import { getDateRange, startOfBerlinDay, toBerlinDateKey } from '../utils/date';
+import { MATCH_RUNNING_MS, getDateRange, startOfBerlinDay, toBerlinDateKey } from '../utils/date';
 
 /** Puffer, damit gerundete Mittelpunkte bei Flächenabfragen keine Randspiele verlieren. */
 const AREA_BUFFER_KM = 2;
@@ -73,8 +73,11 @@ export function useMatches(
             loaded.matches,
             location,
             filters.radiusKm,
-            // vergangene Spiele ausblenden
-            new Date(Math.max(range.from.getTime(), Date.now())),
+            // vergangene Spiele ausblenden – laufende (angepfiffen, noch nicht vorbei) bleiben sichtbar
+            // (Zeiträume ab "jetzt" beginnen sonst erst mit dem nächsten Anpfiff)
+            range.from.getTime() <= Date.now()
+              ? new Date(Math.max(startOfBerlinDay(range.fromKey).getTime(), Date.now() - MATCH_RUNNING_MS))
+              : range.from,
             range.to,
           )
         : [],

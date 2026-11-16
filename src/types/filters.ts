@@ -18,6 +18,8 @@ export interface Filters {
   search: string;
   /** Altersklasse/Liga-Filter, z. B. "age:U15" oder "league:Kreisliga". Leer = alle. */
   classFilter: string;
+  /** Nur Spiele der unter "Meine Vereine" gemerkten Vereine. */
+  favoritesOnly: boolean;
 }
 
 /** Herkunft des gewählten Standorts – relevant für Datenschutzhinweise. */

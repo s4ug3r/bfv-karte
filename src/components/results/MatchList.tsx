@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { LatLng, MatchWithDistance } from '../../types/match';
 import { formatDayHeading, toBerlinDateKey } from '../../utils/date';
+import { clubKey } from '../../utils/favorites';
 import { MatchCard } from './MatchCard';
 
 interface Props {
@@ -8,11 +9,13 @@ interface Props {
   origin: LatLng;
   mapAvailable: boolean;
   activeId: string | null;
+  favoriteKeys: ReadonlySet<string>;
+  onToggleFavorite: (teamName: string) => void;
   onShowOnMap: (id: string) => void;
 }
 
 /** Ergebnisliste, nach Spieltag gruppiert (Sortierung: Anstoß, dann Entfernung). */
-export function MatchList({ matches, origin, mapAvailable, activeId, onShowOnMap }: Props) {
+export function MatchList({ matches, origin, mapAvailable, activeId, favoriteKeys, onToggleFavorite, onShowOnMap }: Props) {
   const groups = useMemo(() => {
     const map = new Map<string, MatchWithDistance[]>();
     for (const m of matches) {
@@ -45,6 +48,9 @@ export function MatchList({ matches, origin, mapAvailable, activeId, onShowOnMap
                   origin={origin}
                   mapAvailable={mapAvailable}
                   active={m.id === activeId}
+                  favHome={favoriteKeys.has(clubKey(m.homeTeam))}
+                  favAway={favoriteKeys.has(clubKey(m.awayTeam))}
+                  onToggleFavorite={onToggleFavorite}
                   onShowOnMap={onShowOnMap}
                 />
               </li>
