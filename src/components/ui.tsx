@@ -50,6 +50,15 @@ export const IconAlert = (p: IconProps) => (
 export const IconX = (p: IconProps) => (
   <svg {...base(p)}><path d="M18 6 6 18M6 6l12 12" /></svg>
 );
+export const IconCalendar = (p: IconProps) => (
+  <svg {...base(p)}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18M12 14v4M10 16h4" /></svg>
+);
+export const IconShare = (p: IconProps) => (
+  <svg {...base(p)}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+);
+export const IconCheck = (p: IconProps) => (
+  <svg {...base(p)}><path d="M20 6 9 17l-5-5" /></svg>
+);
 export const IconSliders = (p: IconProps) => (
   <svg {...base(p)}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
 );
@@ -64,15 +73,22 @@ export function Segmented<T extends string | number>({
   options,
   onChange,
   size = 'md',
+  grid = false,
 }: {
   label: string;
   value: T;
   options: { value: T; label: ReactNode; title?: string }[];
   onChange: (v: T) => void;
   size?: 'sm' | 'md';
+  /** Auf schmalen Bildschirmen 2 × 2 statt einer Zeile (für 4 Optionen mit Zählern). */
+  grid?: boolean;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex w-full rounded-xl bg-slate-100 p-1 gap-1">
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className={`w-full gap-1 rounded-xl bg-slate-100 p-1 ${grid ? 'grid grid-cols-2 sm:flex' : 'flex'}`}
+    >
       {options.map((o) => {
         const active = o.value === value;
         return (

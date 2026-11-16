@@ -1,6 +1,6 @@
 import type { LatLng } from './match';
 
-export type CategoryFilter = 'alle' | 'herren' | 'jugend';
+export type CategoryFilter = 'alle' | 'herren' | 'frauen' | 'jugend';
 
 export type TimePreset = 'heute' | 'wochenende' | '7' | '14' | '30' | 'custom';
 

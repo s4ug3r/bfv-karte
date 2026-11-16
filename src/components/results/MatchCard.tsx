@@ -1,10 +1,11 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { LatLng, MatchWithDistance } from '../../types/match';
 import { CATEGORY_COLOR, CATEGORY_LABEL } from '../../utils/classify';
 import { formatDayMonth, formatTime, formatWeekdayShort } from '../../utils/date';
 import { formatDistance } from '../../utils/distance';
 import { buildRouteUrl, formatVenueAddress } from '../../utils/maps';
-import { IconExternal, IconMap, IconRoute } from '../ui';
+import { downloadIcs, shareMatch } from '../../utils/share';
+import { IconCalendar, IconCheck, IconExternal, IconMap, IconRoute, IconShare } from '../ui';
 
 interface Props {
   match: MatchWithDistance;
@@ -14,8 +15,9 @@ interface Props {
   onShowOnMap: (id: string) => void;
 }
 
-const action =
-  'inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 transition sm:flex-none';
+const action = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 transition';
+const iconAction =
+  'inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900';
 
 /**
  * Ein Spiel in der Liste – links die Anstoßzeit wie auf einer Anzeigetafel,
@@ -24,6 +26,13 @@ const action =
 export const MatchCard = memo(function MatchCard({ match, origin, mapAvailable, active, onShowOnMap }: Props) {
   const address = formatVenueAddress(match.venue);
   const color = CATEGORY_COLOR[match.category];
+  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const share = async () => {
+    if ((await shareMatch(match)) === 'copied') {
+      setShareState('copied');
+      window.setTimeout(() => setShareState('idle'), 2000);
+    }
+  };
   return (
     <article
       className={`flex scroll-mt-20 overflow-hidden rounded-2xl bg-white shadow-sm shadow-bfv-950/5 ring-1 transition-shadow
@@ -67,13 +76,13 @@ export const MatchCard = memo(function MatchCard({ match, origin, mapAvailable, 
           {match.venue.approximate && <span className="text-slate-400"> (Platz des Heimvereins, ohne Gewähr)</span>}
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold">
+        <div className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold">
           <a
             href={buildRouteUrl(match.venue.location, origin)}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Route öffnen"
-            className={`${action} bg-bfv-700 text-white hover:bg-bfv-800`}
+            className={`${action} flex-1 bg-bfv-700 text-white hover:bg-bfv-800 sm:flex-none`}
           >
             <IconRoute width={15} height={15} /> Route
           </a>
@@ -83,21 +92,42 @@ export const MatchCard = memo(function MatchCard({ match, origin, mapAvailable, 
             aria-label="Auf Karte zeigen"
             disabled={!mapAvailable}
             title={mapAvailable ? undefined : 'Aktiviere Google Maps, um die Karte zu nutzen'}
-            className={`${action} bg-bfv-50 text-bfv-800 ring-1 ring-bfv-100 hover:bg-bfv-100 disabled:cursor-not-allowed disabled:opacity-40`}
+            className={`${action} flex-1 bg-bfv-50 text-bfv-800 ring-1 ring-bfv-100 hover:bg-bfv-100 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none`}
           >
             <IconMap width={15} height={15} /> Karte
           </button>
-          {match.detailUrl && (
-            <a
-              href={match.detailUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Spiel auf bfv.de"
-              className={`${action} text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900`}
+          <span className="ml-auto flex shrink-0 gap-1">
+            <button
+              type="button"
+              onClick={() => downloadIcs(match)}
+              aria-label="In den Kalender eintragen"
+              title="In den Kalender eintragen"
+              className={iconAction}
             >
-              <IconExternal width={14} height={14} /> bfv.de
-            </a>
-          )}
+              <IconCalendar width={17} height={17} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void share()}
+              aria-label={shareState === 'copied' ? 'Kopiert' : 'Spiel teilen'}
+              title={shareState === 'copied' ? 'In die Zwischenablage kopiert' : 'Spiel teilen'}
+              className={`${iconAction} ${shareState === 'copied' ? 'text-green-700 ring-green-300' : ''}`}
+            >
+              {shareState === 'copied' ? <IconCheck width={17} height={17} /> : <IconShare width={17} height={17} />}
+            </button>
+            {match.detailUrl && (
+              <a
+                href={match.detailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Spiel auf bfv.de"
+                title="Spiel auf bfv.de"
+                className={iconAction}
+              >
+                <IconExternal width={16} height={16} />
+              </a>
+            )}
+          </span>
         </div>
       </div>
     </article>

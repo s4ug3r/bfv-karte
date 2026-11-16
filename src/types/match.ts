@@ -9,8 +9,8 @@ export interface LatLng {
   lng: number;
 }
 
-/** Kategorie eines Spiels. "unbekannt" = nicht eindeutig zuordenbar (z. B. Freundschaftsspiel, Frauen). */
-export type MatchCategory = 'herren' | 'jugend' | 'unbekannt';
+/** Kategorie eines Spiels. "unbekannt" = nicht eindeutig zuordenbar (z. B. Freundschaftsspiel). */
+export type MatchCategory = 'herren' | 'frauen' | 'jugend' | 'unbekannt';
 
 /** Spielstätte. Koordinaten sind optional und werden bei Bedarf per Geocoding ergänzt. */
 export interface Venue {

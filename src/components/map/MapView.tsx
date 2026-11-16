@@ -22,7 +22,7 @@ interface Props {
   matches: MatchWithDistance[];
 }
 
-const GLYPH: Record<MatchWithDistance['category'], string> = { herren: 'H', jugend: 'J', unbekannt: '?' };
+const GLYPH: Record<MatchWithDistance['category'], string> = { herren: 'H', frauen: 'F', jugend: 'J', unbekannt: '?' };
 
 /** Cluster-Darstellung: dunkelblaue Kreise mit Anzahl, Größe wächst mit der Menge. */
 const clusterRenderer: Renderer = {

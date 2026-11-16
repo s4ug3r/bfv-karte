@@ -46,6 +46,7 @@ export function FilterPanel({ filters, counts, extraAgeClasses, onChange }: Prop
         <FieldLabel>Mannschaften</FieldLabel>
         <Segmented<CategoryFilter>
           label="Kategorie"
+          grid
           value={filters.category}
           onChange={(category) => onChange({ category })}
           options={[
@@ -53,6 +54,10 @@ export function FilterPanel({ filters, counts, extraAgeClasses, onChange }: Prop
             {
               value: 'herren',
               label: <><Dot color="bg-blue-600" />Herren <Count n={counts.herren} /></>,
+            },
+            {
+              value: 'frauen',
+              label: <><Dot color="bg-fuchsia-600" />Frauen <Count n={counts.frauen} /></>,
             },
             {
               value: 'jugend',

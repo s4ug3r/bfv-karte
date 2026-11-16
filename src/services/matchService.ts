@@ -156,9 +156,10 @@ export function applyUserFilters(
 
 /** Anzahl Spiele je Kategorie (für Zähler an den Filter-Schaltern). */
 export function countByCategory(matches: Match[]): Record<CategoryFilter, number> {
-  const counts = { alle: matches.length, herren: 0, jugend: 0 };
+  const counts = { alle: matches.length, herren: 0, frauen: 0, jugend: 0 };
   for (const m of matches) {
     if (m.category === 'herren') counts.herren++;
+    else if (m.category === 'frauen') counts.frauen++;
     else if (m.category === 'jugend') counts.jugend++;
   }
   return counts;

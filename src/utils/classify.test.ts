@@ -8,7 +8,11 @@ describe('classifyCategory', () => {
     ['A-Klasse 4 (Reserve)', 'TSV Dachau II', 'SV X II', 'herren'],
     ['U17 Kreisliga 2', 'TSV Dachau U17', 'SV X U17', 'jugend'],
     ['C-Junioren Kreisklasse', 'TSV Dachau', 'SV X', 'jugend'],
-    ['Frauen Bezirksoberliga', 'TSV Dachau', 'SV X', 'unbekannt'],
+    ['Frauen Bezirksoberliga', 'TSV Dachau', 'SV X', 'frauen'],
+    ['Kreisliga', 'TSV Dachau', 'SV X', 'herren'],
+    ['Kreisliga Frauen', 'TSV Dachau', 'SV X', 'frauen'],
+    ['Damen Kreisklasse', 'FC Y', 'SV X', 'frauen'],
+    ['C-Juniorinnen Kreisliga', 'TSV Dachau', 'SV X', 'jugend'],
     ['Freundschaftsspiel', 'TSV Dachau', 'SV X', 'unbekannt'],
   ])('%s → %s', (competition, home, away, expected) => {
     expect(classifyCategory(competition, home, away)).toBe(expected);

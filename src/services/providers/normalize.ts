@@ -56,13 +56,15 @@ function parseVenue(raw: Raw): Venue {
   };
 }
 
-const CATEGORIES: MatchCategory[] = ['herren', 'jugend', 'unbekannt'];
+const CATEGORIES: MatchCategory[] = ['herren', 'frauen', 'jugend', 'unbekannt'];
 
 function parseCategory(value: string | undefined): MatchCategory | undefined {
   if (!value) return undefined;
   const v = value.toLowerCase();
   if (CATEGORIES.includes(v as MatchCategory)) return v as MatchCategory;
-  if (/herren|men|senior/.test(v)) return 'herren';
+  // Frauen zuerst: "women" enthält "men"
+  if (/frauen|damen|women|female/.test(v)) return 'frauen';
+  if (/herren|\bmen\b|senior/.test(v)) return 'herren';
   if (/jugend|youth|junior/.test(v)) return 'jugend';
   return undefined;
 }

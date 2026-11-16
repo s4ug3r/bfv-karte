@@ -1,6 +1,6 @@
 # BFV Spiele in der Nähe
 
-Responsive Web-App, die Fußballspiele des Bayerischen Fußball-Verbands (BFV) auf einer interaktiven Google-Maps-Karte und in einer Liste anzeigt – gefiltert nach Umkreis, Zeitraum, Herren/Jugend, Altersklasse/Liga und Freitext.
+Responsive Web-App, die Fußballspiele des Bayerischen Fußball-Verbands (BFV) auf einer interaktiven Google-Maps-Karte und in einer Liste anzeigt – gefiltert nach Umkreis, Zeitraum, Herren/Frauen/Jugend, Altersklasse/Liga und Freitext.
 
 **Stack:** React 18 · TypeScript · Tailwind CSS 4 · Vite · TanStack React Query · Google Maps JavaScript API (Advanced Markers, Places, Geocoding) · MarkerClusterer
 
@@ -94,7 +94,9 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 
 - **Standort:** Google-Ortssuche (auf Deutschland beschränkt, Bayern bevorzugt), „Meinen Standort verwenden“ (Browser-Geolocation nach Einwilligungsdialog), Standard **Dachau**.
 - **Umkreis:** 5 / 10 / 20 / 30 / 50 / 100 km – als Kreis auf der Karte dargestellt.
-- **Filter:** Alle / Herren / Jugend (mit Trefferzählern), Zeitraum (Heute, Dieses Wochenende, 7/14/30 Tage, eigener Zeitraum), Altersklasse U7–U19 bzw. Ligastufe (Bayernliga … B-Klasse), Freitext für Verein, Liga oder Ort.
+- **Spiel teilen & Kalender:** Jedes Spiel lässt sich per Teilen-Menü (WhatsApp, Signal …) verschicken oder als Termin (.ics) in den Kalender übernehmen.
+- **Als App installierbar:** Web-App-Manifest und Icons – am Handy über „Zum Home-Bildschirm“ wie eine App nutzbar.
+- **Filter:** Alle / Herren / Frauen / Jugend (mit Trefferzählern; Juniorinnen zählen zur Jugend), Zeitraum (Heute, Dieses Wochenende, 7/14/30 Tage, eigener Zeitraum), Altersklasse U7–U19 bzw. Ligastufe (Bayernliga … B-Klasse), Freitext für Verein, Liga oder Ort.
 - **Karte:** Marker in **Blau (Herren, „H“)**, **Grün (Jugend, „J“)**, **Grau (unklar, „?“)**, Marker-Clustering, InfoWindow mit Datum/Uhrzeit, Paarung, Liga, Spielstätte, Entfernung, „Route öffnen“ und BFV-Link. Mehrere Spiele auf derselben Anlage werden minimal versetzt, damit jedes anklickbar bleibt.
 - **Liste:** nach Spieltag gruppiert, sortiert nach Anstoß (dann Entfernung), mit „Auf Karte zeigen“ (zentriert + öffnet InfoWindow) und „Route öffnen“.
 - **Ansichten:** Beides / Karte / Liste – mobil untereinander, ab 1024 px nebeneinander.
@@ -290,5 +292,5 @@ public/_redirects, vercel.json  Proxys /bfv-api → widget-prod.bfv.de und /bfv-
 - Die BFV-Widget-Schnittstelle ist **inoffiziell**; Änderungen beim BFV können den Abruf brechen. Dann `bfv-api` aktualisieren (`npm update bfv-api`).
 - Spielorte sind über den Heimverein **geschätzt** (siehe oben).
 - Entfernungen sind **Luftlinie**; die tatsächliche Fahrstrecke zeigt „Route öffnen“ in Google Maps.
-- Die Herren/Jugend-Heuristik deckt die üblichen BFV-Bezeichnungen ab; liefert die Quelle `category`, wird diese verwendet.
+- Die Herren/Frauen/Jugend-Heuristik deckt die üblichen BFV-Bezeichnungen ab; liefert die Quelle `category`, wird diese verwendet.
 - Mögliche Erweiterungen: Frauen als eigene Kategorie, Favoriten-Vereine, Kalender-Export (ICS), PWA/Offline-Modus, Fahrzeit statt Luftlinie (Distance Matrix / Routes API).

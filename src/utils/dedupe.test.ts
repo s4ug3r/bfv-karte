@@ -50,6 +50,16 @@ describe('normalizeMatchList', () => {
     expect(m.detailUrl).toBeUndefined(); // unsichere URL verworfen
   });
 
+  it('erkennt Frauen auch bei englischer Kategorie ("women" enthält "men")', () => {
+    const base = { kickoff: '2026-11-21T14:00:00+01:00', homeTeam: 'A', awayTeam: 'B', competition: 'Liga', venue: { name: 'X', lat: 48.2, lng: 11.4 } };
+    const [w, f, h] = normalizeMatchList([
+      { ...base, id: 'w', category: 'Women' },
+      { ...base, id: 'f', category: 'Frauen' },
+      { ...base, id: 'h', category: 'Men' },
+    ]);
+    expect([w.category, f.category, h.category]).toEqual(['frauen', 'frauen', 'herren']);
+  });
+
   it('überspringt Datensätze ohne Pflichtfelder', () => {
     expect(normalizeMatchList([{ homeTeam: 'A' }])).toHaveLength(0);
   });

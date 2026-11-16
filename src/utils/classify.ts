@@ -1,5 +1,5 @@
 /**
- * Heuristische Einordnung von Spielen in Herren / Jugend sowie Altersklasse und Ligastufe.
+ * Heuristische Einordnung von Spielen in Herren / Frauen / Jugend sowie Altersklasse und Ligastufe.
  * Wird genutzt, wenn eine Datenquelle die Kategorie nicht explizit mitliefert.
  */
 import type { Match, MatchCategory } from '../types/match';
@@ -35,8 +35,9 @@ export function extractAgeClass(...texts: (string | undefined)[]): string | unde
 
 /**
  * Ordnet ein Spiel einer Kategorie zu.
- * Reihenfolge: Jugend-Merkmale zuerst (auch "U17 Kreisliga" ist Jugend), dann Frauen
- * (→ "unbekannt", da die App nur Herren/Jugend unterscheidet), dann Herren-Ligen.
+ * Reihenfolge: Jugend-Merkmale zuerst (auch "U17 Kreisliga" und Juniorinnen sind Jugend),
+ * dann Frauen (vor den Herren-Ligen, da Frauenligen gleich heißen: "Frauen Kreisliga"),
+ * dann Herren-Ligen.
  */
 export function classifyCategory(
   competition: string,
@@ -46,7 +47,7 @@ export function classifyCategory(
 ): MatchCategory {
   const text = [competition, homeTeam, awayTeam, ageClass].filter(Boolean).join(' ');
   if (ageClass || YOUTH_RE.test(text)) return 'jugend';
-  if (WOMEN_RE.test(text)) return 'unbekannt';
+  if (WOMEN_RE.test(text)) return 'frauen';
   if (MEN_RE.test(text)) return 'herren';
   return 'unbekannt';
 }
@@ -79,13 +80,15 @@ export function matchesClassFilter(match: Match, filter: string): boolean {
 
 export const CATEGORY_LABEL: Record<MatchCategory, string> = {
   herren: 'Herren',
+  frauen: 'Frauen',
   jugend: 'Jugend',
   unbekannt: 'Sonstige',
 };
 
-/** Markerfarben laut Vorgabe: Blau = Herren, Grün = Jugend, Grau = unklar. */
+/** Markerfarben: Blau = Herren, Violett = Frauen, Grün = Jugend, Grau = unklar. */
 export const CATEGORY_COLOR: Record<MatchCategory, string> = {
   herren: '#2563eb',
+  frauen: '#c026d3',
   jugend: '#16a34a',
   unbekannt: '#6b7280',
 };

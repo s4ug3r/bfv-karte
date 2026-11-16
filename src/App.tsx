@@ -38,7 +38,7 @@ function sanitizeFilters(stored: unknown): Filters {
   const s = (stored ?? {}) as Partial<Filters>;
   return {
     ...DEFAULT_FILTERS,
-    category: s.category === 'herren' || s.category === 'jugend' ? s.category : 'alle',
+    category: s.category === 'herren' || s.category === 'frauen' || s.category === 'jugend' ? s.category : 'alle',
     timePreset: TIME_PRESETS.some((p) => p.value === s.timePreset) ? s.timePreset! : DEFAULT_FILTERS.timePreset,
     customFrom: typeof s.customFrom === 'string' ? s.customFrom : '',
     customTo: typeof s.customTo === 'string' ? s.customTo : '',
@@ -367,7 +367,7 @@ export default function App() {
           ref={mapSectionRef}
           aria-label="Karte"
           className={`order-2 ${onMapTab ? 'block' : 'hidden'} ${mapHidden ? 'lg:hidden' : 'lg:block'}
-            fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20
+            fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] sm:top-[calc(4rem+env(safe-area-inset-top))] bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20
             lg:static lg:inset-auto lg:z-auto lg:min-h-0`}
         >
           <div className="relative h-full overflow-hidden">
