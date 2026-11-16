@@ -12,10 +12,12 @@ interface Props {
   weatherFor: (m: Match) => WeatherAt | null;
   onToggleFavorite: (teamName: string) => void;
   onOpen: (id: string) => void;
+  /** Breite Ansicht (Desktop, nur Liste): Karten in zwei Spalten */
+  wide?: boolean;
 }
 
 /** Ergebnisliste, nach Spieltag gruppiert (Sortierung: Anstoß, dann Entfernung). */
-export function MatchList({ matches, activeId, favoriteKeys, weatherFor, onToggleFavorite, onOpen }: Props) {
+export function MatchList({ matches, activeId, favoriteKeys, weatherFor, onToggleFavorite, onOpen, wide = false }: Props) {
   const groups = useMemo(() => {
     const map = new Map<string, MatchWithDistance[]>();
     for (const m of matches) {
@@ -40,9 +42,11 @@ export function MatchList({ matches, activeId, favoriteKeys, weatherFor, onToggl
               {items.length} {items.length === 1 ? 'Spiel' : 'Spiele'}
             </span>
           </h2>
-          <ul className="space-y-2">
+          <ul className={`grid grid-cols-1 gap-2 ${wide ? 'lg:grid-cols-2 lg:gap-3' : ''}`}>
             {items.map((m) => (
-              <li key={m.id}>
+              // content-visibility: Karten außerhalb des Bildschirms werden nicht gezeichnet –
+              // lange Listen (100 km, 30 Tage) scrollen so auch auf älteren Handys flüssig
+              <li key={m.id} className="[contain-intrinsic-size:auto_104px] [content-visibility:auto]">
                 <MatchCard
                   match={m}
                   active={m.id === activeId}

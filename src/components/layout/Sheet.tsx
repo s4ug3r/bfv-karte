@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type TouchEvent } from 'react';
 import { IconX } from '../ui';
 
 interface Props {
@@ -17,11 +17,40 @@ interface Props {
  */
 export function Sheet({ open, onClose, title, ariaLabel, children, footer }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
+  const drag = useRef<{ startY: number; dy: number } | null>(null);
+
+  // Am Handy: Kopfbereich nach unten ziehen schließt (wie bei App-Sheets)
+  const onTouchStart = (e: TouchEvent) => {
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
+    drag.current = { startY: e.touches[0].clientY, dy: 0 };
+    if (ref.current) ref.current.style.transition = 'none';
+  };
+  const onTouchMove = (e: TouchEvent) => {
+    const d = drag.current;
+    if (!d || !ref.current) return;
+    d.dy = Math.max(0, e.touches[0].clientY - d.startY);
+    ref.current.style.transform = `translateY(${d.dy}px)`;
+  };
+  const onTouchEnd = () => {
+    const d = drag.current;
+    drag.current = null;
+    const el = ref.current;
+    if (!d || !el) return;
+    el.style.transition = 'transform 0.2s ease-out';
+    if (d.dy > 90) {
+      el.style.transform = 'translateY(100%)';
+      window.setTimeout(onClose, 150);
+    } else {
+      el.style.transform = '';
+    }
+  };
 
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) {
+      d.style.transform = '';
+      d.style.transition = '';
       d.showModal();
       d.querySelector<HTMLElement>('[data-sheet-body]')?.scrollTo(0, 0);
     }
@@ -50,7 +79,13 @@ export function Sheet({ open, onClose, title, ariaLabel, children, footer }: Pro
     >
       {open && (
         <>
-          <div className="relative shrink-0 border-b border-slate-200 bg-white px-4 pb-3 pt-2 lg:pt-4">
+          <div
+            className="relative shrink-0 touch-none border-b border-slate-200 bg-white px-4 pb-3 pt-2 lg:touch-auto lg:pt-4"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchEnd}
+          >
             <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300 lg:hidden" aria-hidden />
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1 font-display text-xl font-semibold text-bfv-900">{title}</div>
@@ -64,7 +99,12 @@ export function Sheet({ open, onClose, title, ariaLabel, children, footer }: Pro
               </button>
             </div>
           </div>
-          <div data-sheet-body className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+          <div
+            data-sheet-body
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 ${
+              footer ? 'pb-4' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom))]'
+            }`}
+          >
             {children}
           </div>
           {footer && (

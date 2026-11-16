@@ -26,6 +26,20 @@ const bfvProxy = {
 // https://vite.dev/config/ – vitest/config erweitert die Vite-Konfiguration um "test".
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Bibliotheken in eigene Dateien: Nach einem App-Update lädt der Browser nur den
+        // geänderten App-Teil neu, die großen Bibliotheken bleiben im Zwischenspeicher.
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          query: ['@tanstack/react-query', '@tanstack/react-query-persist-client', '@tanstack/query-sync-storage-persister'],
+          bfv: ['bfv-api', 'axios'],
+          maps: ['@googlemaps/js-api-loader', '@googlemaps/markerclusterer'],
+        },
+      },
+    },
+  },
   // host + allowedHosts: Zugriff vom Handy (WLAN) bzw. über Tailscale/Cloudflare-Tunnel erlauben
   server: { proxy: bfvProxy, host: true, allowedHosts: ['.ts.net', '.trycloudflare.com'] },
   preview: { proxy: bfvProxy, host: true, allowedHosts: ['.ts.net', '.trycloudflare.com'] },

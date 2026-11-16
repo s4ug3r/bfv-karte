@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MatchDetails } from './components/details/MatchDetails';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FilterPanel, TIME_PRESETS } from './components/filters/FilterPanel';
 import { QuickBar } from './components/filters/QuickBar';
 import { Footer } from './components/layout/Footer';
@@ -18,7 +17,7 @@ import { useFavorites } from './hooks/useFavorites';
 import { useNow } from './hooks/useNow';
 import { useOnline } from './hooks/useOnline';
 import { clubKey, involvesFavorite } from './utils/favorites';
-import { buttonPrimary, buttonSecondary } from './components/ui';
+import { Spinner, buttonPrimary, buttonSecondary } from './components/ui';
 import { useFavoriteResults } from './hooks/useFavoriteResults';
 import { useWeather } from './hooks/useWeather';
 import { config } from './config';
@@ -31,6 +30,9 @@ import { clubsInRadius, isAreaCovered } from './services/bfv/areaIndex';
 import { getMatchProvider, usesBfvSources } from './services/providers';
 import { RADIUS_OPTIONS, type Filters, type SelectedLocation } from './types/filters';
 import { MATCH_RUNNING_MS, formatDateKey } from './utils/date';
+
+// Spieldetails (Tabelle, Form …) erst beim ersten Öffnen laden – hält den Start klein
+const MatchDetails = lazy(() => import('./components/details/MatchDetails').then((m) => ({ default: m.MatchDetails })));
 
 const DEFAULT_FILTERS: Filters = {
   category: 'alle',
@@ -197,7 +199,7 @@ export default function App() {
   const resetFilters = () => updateFilters({ category: 'alle', classFilter: '', search: '', favoritesOnly: false });
 
   const highlights = (
-    <div className="mb-5 space-y-3">
+    <div className={`mb-5 grid grid-cols-1 items-start gap-3 ${view === 'liste' ? 'lg:grid-cols-2' : ''}`}>
       <UpcomingCard matches={upcoming} now={now} onSelect={openDetails} />
       <FavoritesCard
         favorites={favorites.list}
@@ -317,6 +319,7 @@ export default function App() {
           weatherFor={weatherFor}
           onToggleFavorite={favorites.toggle}
           onOpen={openDetails}
+          wide={view === 'liste'}
         />
       </>
     );
@@ -363,7 +366,7 @@ export default function App() {
         <aside
           className={`${onMapTab ? 'hidden' : 'block'} ${listHidden ? 'lg:hidden' : 'lg:block'} lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200`}
         >
-          <div className={`px-4 pb-6 pt-4 sm:px-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
+          <div className={`px-4 pb-6 pt-4 sm:px-5 ${mapHidden ? 'lg:mx-auto lg:max-w-5xl lg:px-8' : ''}`}>
             <QuickBar
               location={location}
               radiusKm={filters.radiusKm}
@@ -389,7 +392,7 @@ export default function App() {
             <div className="mb-3 mt-5">
               <ResultBar
                 count={shown.length}
-                radiusKm={filters.radiusKm}
+                timeLabel={timeLabel}
                 loading={result.isLoading}
                 refreshing={result.isFetching && !result.isLoading}
                 view={view}
@@ -520,6 +523,13 @@ export default function App() {
         ariaLabel={detailMatch ? `Details: ${detailMatch.homeTeam} gegen ${detailMatch.awayTeam}` : undefined}
       >
         {detailMatch && (
+          <Suspense
+            fallback={
+              <p className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+                <Spinner className="text-bfv-700" /> Wird geladen…
+              </p>
+            }
+          >
           <MatchDetails
             match={detailMatch}
             origin={location}
@@ -531,6 +541,7 @@ export default function App() {
             onToggleFavorite={favorites.toggle}
             onShowOnMap={showOnMap}
           />
+          </Suspense>
         )}
       </Sheet>
 

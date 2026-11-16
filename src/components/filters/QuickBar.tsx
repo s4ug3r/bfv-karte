@@ -111,8 +111,9 @@ export function QuickBar(p: Props) {
         </div>
       )}
 
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 sm:-mx-5 sm:px-5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
-        <div role="radiogroup" aria-label="Mannschaften" className="flex gap-2 lg:flex-wrap">
+      <div className="flex items-stretch gap-2">
+        {/* Handy: 4 gleich breite Felder (Name oben, Anzahl unten) – passt immer in eine Zeile */}
+        <div role="radiogroup" aria-label="Mannschaften" className="grid min-w-0 flex-1 grid-cols-4 gap-1.5 sm:gap-2">
           {CATEGORIES.map((c) => {
             const active = p.category === c.value;
             return (
@@ -122,29 +123,32 @@ export function QuickBar(p: Props) {
                 role="radio"
                 aria-checked={active}
                 onClick={() => p.onCategory(c.value)}
-                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
+                className={`flex min-h-12 min-w-0 flex-col items-center justify-center rounded-xl px-1 transition sm:min-h-10 sm:flex-row sm:gap-1.5 sm:rounded-full sm:px-3 ${
                   active ? 'bg-bfv-700 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-300'
                 }`}
               >
-                {c.color && (
-                  <span
-                    className={`h-2 w-2 rounded-full ${active ? 'ring-2 ring-white/70' : ''}`}
-                    style={{ backgroundColor: c.color }}
-                    aria-hidden
-                  />
-                )}
-                {c.label}
-                <span className={`tabular-nums font-medium ${active ? 'text-white/75' : 'text-slate-400'}`}>
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold sm:text-sm">
+                  {c.color && (
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${active ? 'ring-2 ring-white/70' : ''}`}
+                      style={{ backgroundColor: c.color }}
+                      aria-hidden
+                    />
+                  )}
+                  {c.label}
+                </span>
+                <span className={`text-xs tabular-nums font-medium sm:text-sm ${active ? 'text-white/75' : 'text-slate-400'}`}>
                   {p.counts[c.value]}
                 </span>
               </button>
             );
           })}
         </div>
+        {/* Am Handy sitzt "Filter" in der unteren Leiste */}
         <button
           type="button"
           onClick={p.onOpenFilters}
-          className="ml-auto flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 lg:ml-0 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-slate-300"
+          className="hidden shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-slate-300 lg:flex"
         >
           <IconSliders width={16} height={16} /> Filter
           {p.extraFilterCount > 0 && (

@@ -32,7 +32,16 @@ root.render(
     {persister ? (
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister, maxAge: config.cache.matchesMaxAgeMs, buster: config.cacheVersion }}
+        persistOptions={{
+          persister,
+          maxAge: config.cache.matchesMaxAgeMs,
+          buster: config.cacheVersion,
+          // Nur die Spiellisten speichern (für Offline und schnellen Start). Spielpläne, Tabellen
+          // und Wetter sind groß und schnell nachgeladen – sie würden localStorage nur aufblähen.
+          dehydrateOptions: {
+            shouldDehydrateQuery: (q) => q.queryKey[0] === 'matches' && q.state.status === 'success',
+          },
+        }}
       >
         <App />
       </PersistQueryClientProvider>
