@@ -51,6 +51,8 @@ export const config = {
     (env.VITE_BFV_SEED ?? '').trim(),
     '016PD5QT70000000VV0AG811VTE5EA5R', // Mannschaft aus der Doku der bfv-api-Bibliothek
   ].filter(Boolean),
+  /** Wetter zum Anpfiff über Open-Meteo (nur Koordinaten der Spielorte). VITE_WEATHER=false schaltet ab. */
+  weatherEnabled: (env.VITE_WEATHER ?? 'true').trim().toLowerCase() !== 'false',
   /** Link zur Spieldetailseite; {matchId} wird ersetzt. Leer = kein Link. */
   bfvMatchUrlTemplate: env.VITE_BFV_MATCH_URL_TEMPLATE ?? 'https://www.bfv.de/ergebnisse/spiel/-/{matchId}',
   bfvStaticUrl: (env.VITE_BFV_STATIC_URL ?? '').trim() || '/data/matches.json',
@@ -86,5 +88,5 @@ export const config = {
   },
 
   /** Wird bei inkompatiblen Cache-Formaten erhöht und verwirft alte localStorage-Caches. */
-  cacheVersion: 'v3',
+  cacheVersion: 'v4', // v4: Spiele tragen BFV-Kennungen (Tabelle, Form)
 } as const;

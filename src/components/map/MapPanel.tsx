@@ -13,6 +13,7 @@ interface Props {
   matches: MatchWithDistance[];
   onConsent: () => void;
   onRetry: () => void;
+  onOpenDetails?: (id: string) => void;
 }
 
 /**
@@ -23,7 +24,7 @@ export const MapPanel = forwardRef<MapViewHandle, Props>(function MapPanel(props
   const { status } = props;
 
   if (status === 'ready') {
-    return <MapView ref={ref} location={props.location} radiusKm={props.radiusKm} matches={props.matches} />;
+    return <MapView ref={ref} location={props.location} radiusKm={props.radiusKm} matches={props.matches} onOpenDetails={props.onOpenDetails} />;
   }
 
   return (

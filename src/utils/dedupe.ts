@@ -34,6 +34,7 @@ export function dedupeMatches<T extends Match>(matches: T[]): T[] {
     byKey.set(key, {
       ...existing,
       detailUrl: existing.detailUrl ?? m.detailUrl,
+      bfv: existing.bfv ?? m.bfv,
       ageClass: existing.ageClass ?? m.ageClass,
       category: existing.category === 'unbekannt' ? m.category : existing.category,
       venue: { ...existing.venue, location: existing.venue.location ?? m.venue.location },

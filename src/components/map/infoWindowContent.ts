@@ -21,7 +21,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-export function createInfoWindowContent(match: MatchWithDistance, origin: LatLng): HTMLElement {
+export function createInfoWindowContent(match: MatchWithDistance, origin: LatLng, onDetails?: () => void): HTMLElement {
   const root = el('div', 'w-[min(78vw,300px)] p-4 font-sans text-slate-900');
 
   const top = el('div', 'mb-2 flex items-center gap-2 pr-6');
@@ -53,6 +53,16 @@ export function createInfoWindowContent(match: MatchWithDistance, origin: LatLng
   root.append(venue);
 
   const actions = el('div', 'mt-3 flex flex-wrap gap-2');
+  if (onDetails) {
+    const details = el(
+      'button',
+      'inline-flex items-center gap-1.5 rounded-lg bg-bfv-50 px-3 py-2 text-xs font-semibold text-bfv-800 ring-1 ring-bfv-100 hover:bg-bfv-100',
+      'Details',
+      { type: 'button' },
+    );
+    details.addEventListener('click', onDetails);
+    actions.append(details);
+  }
   actions.append(
     el('a', 'inline-flex items-center gap-1.5 rounded-lg bg-bfv-700 px-3 py-2 text-xs font-semibold text-white no-underline hover:bg-bfv-800', 'Route öffnen', {
       href: buildRouteUrl(match.venue.location, origin),

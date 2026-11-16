@@ -68,3 +68,26 @@ gmp-place-autocomplete {
 @media (prefers-reduced-motion: reduce) {
   .bfv-pulse::after { animation: none; }
 }
+
+/* Ausklappbare Ansicht (Sheet): von unten am Handy, von rechts am Desktop */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes sheet-left {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+dialog.sheet[open] {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 1024px) {
+  dialog.sheet[open] { animation-name: sheet-left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet[open] { animation: none; }
+}
+
+/* Waagerechte Chip-Leisten ohne sichtbaren Scrollbalken */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

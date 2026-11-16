@@ -87,6 +87,12 @@ export function mapBfvMatch(
       approximate: true,
     },
     detailUrl: matchUrl(m.matchId),
+    bfv: {
+      matchId: m.matchId,
+      compoundId: m.compoundId,
+      homeTeamId: m.homeTeamPermanentId,
+      awayTeamId: m.guestTeamPermanentId,
+    },
   };
 }
 

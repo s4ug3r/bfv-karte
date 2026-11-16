@@ -98,6 +98,57 @@ export async function fetchCompetitionTeams(
   }
 }
 
+export interface TableRow {
+  position: number;
+  teamId: string;
+  teamName: string;
+  matches: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsDiff: number;
+  points: number;
+}
+
+/** Tabelle einer Liga (für die Detailansicht). */
+export async function fetchCompetitionTable(
+  compoundId: string,
+  signal?: AbortSignal,
+): Promise<{ competitionName: string; rows: TableRow[] }> {
+  try {
+    const res = (await client.getCompetitionTable({ params: { compoundId }, signal })) as unknown as {
+      data?: {
+        competitionName?: string;
+        table?: (BfvTableEntry & {
+          position?: number;
+          matches?: number;
+          matchesWon?: number;
+          matchesDrawn?: number;
+          matchesLost?: number;
+          goalsDiff?: number;
+          points?: number;
+        })[];
+      };
+    };
+    const rows = (res.data?.table ?? [])
+      .filter((e) => e.team?.name)
+      .map((e, i) => ({
+        position: e.position ?? i + 1,
+        teamId: e.team?.permanentId ?? '',
+        teamName: e.team?.name ?? '',
+        matches: e.matches ?? 0,
+        won: e.matchesWon ?? 0,
+        drawn: e.matchesDrawn ?? 0,
+        lost: e.matchesLost ?? 0,
+        goalsDiff: e.goalsDiff ?? 0,
+        points: e.points ?? 0,
+      }));
+    return { competitionName: res.data?.competitionName ?? '', rows };
+  } catch (err) {
+    throw toProviderError(err, 'Die Tabelle');
+  }
+}
+
 /** Name einer Liga (für die Quellenverwaltung). */
 export async function fetchCompetitionName(compoundId: string): Promise<string> {
   try {

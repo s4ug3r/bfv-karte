@@ -44,6 +44,16 @@ export interface Match {
   venue: Venue;
   /** Link zur BFV-Spieldetailseite, falls verfügbar. */
   detailUrl?: string;
+  /** BFV-Kennungen (nur bei BFV-Daten) – für Tabelle, Form und Spielplan in der Detailansicht. */
+  bfv?: BfvRefs;
+}
+
+export interface BfvRefs {
+  matchId: string;
+  /** Liga/Wettbewerb */
+  compoundId: string;
+  homeTeamId: string;
+  awayTeamId: string;
 }
 
 /** Spiel mit garantiert vorhandenen Koordinaten der Spielstätte. */

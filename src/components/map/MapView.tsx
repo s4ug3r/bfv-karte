@@ -20,6 +20,8 @@ interface Props {
   location: SelectedLocation;
   radiusKm: number;
   matches: MatchWithDistance[];
+  /** "Details" im InfoWindow */
+  onOpenDetails?: (id: string) => void;
 }
 
 const GLYPH: Record<MatchWithDistance['category'], string> = { herren: 'H', frauen: 'F', jugend: 'J', unbekannt: '?' };
@@ -43,7 +45,9 @@ const clusterRenderer: Renderer = {
   },
 };
 
-export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ location, radiusKm, matches }, ref) {
+export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ location, radiusKm, matches, onOpenDetails }, ref) {
+  const onOpenDetailsRef = useRef(onOpenDetails);
+  onOpenDetailsRef.current = onOpenDetails;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const clustererRef = useRef<MarkerClusterer | null>(null);
@@ -65,7 +69,11 @@ export const MapView = forwardRef<MapViewHandle, Props>(function MapView({ locat
     const info = infoRef.current;
     const pos = positionsRef.current.get(match.id) ?? match.venue.location;
     if (!map || !info) return;
-    info.setContent(createInfoWindowContent(match, { lat: locationRef.current.lat, lng: locationRef.current.lng }));
+    info.setContent(
+      createInfoWindowContent(match, { lat: locationRef.current.lat, lng: locationRef.current.lng }, () =>
+        onOpenDetailsRef.current?.(match.id),
+      ),
+    );
     info.setPosition(pos);
     info.open({ map });
     openIdRef.current = match.id;

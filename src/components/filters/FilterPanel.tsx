@@ -10,6 +10,8 @@ interface Props {
   /** Zusätzliche Altersklassen aus den geladenen Daten (z. B. U10). */
   extraAgeClasses: string[];
   onChange: (patch: Partial<Filters>) => void;
+  /** Kategorie steht schon als Chips über der Liste */
+  hideCategory?: boolean;
 }
 
 export const TIME_PRESETS: { value: TimePreset; label: string }[] = [
@@ -22,7 +24,7 @@ export const TIME_PRESETS: { value: TimePreset; label: string }[] = [
 ];
 
 /** Alle Filter: Umkreis, Kategorie, Zeitraum, Altersklasse/Liga und Freitext. */
-export function FilterPanel({ filters, counts, extraAgeClasses, onChange }: Props) {
+export function FilterPanel({ filters, counts, extraAgeClasses, onChange, hideCategory = false }: Props) {
   const id = useId();
   const today = toBerlinDateKey(new Date());
   const ageClasses = [...new Set([...AGE_CLASSES, ...extraAgeClasses])].sort(
@@ -42,6 +44,7 @@ export function FilterPanel({ filters, counts, extraAgeClasses, onChange }: Prop
         />
       </div>
 
+      {!hideCategory && (
       <div>
         <FieldLabel>Mannschaften</FieldLabel>
         <Segmented<CategoryFilter>
@@ -66,8 +69,9 @@ export function FilterPanel({ filters, counts, extraAgeClasses, onChange }: Prop
           ]}
         />
       </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor={`${id}-time`}>Zeitraum</FieldLabel>
           <select

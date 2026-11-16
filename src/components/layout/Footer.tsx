@@ -1,5 +1,5 @@
 /** Sichtbare Versionsnummer – zeigt nach dem Hochladen, ob die neue Version läuft. */
-export const APP_VERSION = '2.7.0';
+export const APP_VERSION = '2.8.0';
 
 interface Props {
   sourceLabel: string;
@@ -21,7 +21,11 @@ export function Footer({ sourceLabel, googleConsent, onRevokeGoogle }: Props) {
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
           © OpenStreetMap-Mitwirkende
         </a>{' '}
-        (Photon/Nominatim).
+        (Photon/Nominatim). Wetter:{' '}
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" className="underline">
+          Open-Meteo
+        </a>{' '}
+        (dabei werden nur die Koordinaten der Spielorte übertragen, nicht dein Standort).
       </p>
       <p>
         Datenschutz: Dein GPS-Standort wird nur nach Zustimmung abgefragt. Zuletzt gewählter Standort, Filter,

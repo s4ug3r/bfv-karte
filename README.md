@@ -83,6 +83,7 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 | `VITE_BFV_PROXY_URL` | Pfad/URL des Proxys zur BFV-Widget-Schnittstelle | `/bfv-api` |
 | `VITE_BFV_WEB_PROXY_URL` | Pfad/URL des Proxys zu www.bfv.de (Vereinsseiten) | `/bfv-web` |
 | `VITE_BFV_SEED` | eingebauter Startverein (bfv.de-Link), ab dem die erste Erkundung in die gewählte Gegend wandert – am besten ein Verein aus der Region, in der die App meist genutzt wird | eingebaute Mannschaft |
+| `VITE_WEATHER` | Wetter zum Anpfiff über Open-Meteo (`false` schaltet ab) | `true` |
 | `VITE_BFV_MATCH_URL_TEMPLATE` | Link zur Spieldetailseite, `{matchId}` wird ersetzt | `https://www.bfv.de/ergebnisse/spiel/-/{matchId}` |
 | `VITE_BFV_API_BASE_URL` | Basis-URL deines Backends (`/matches`-Endpunkt) | – |
 | `VITE_BFV_API_AREA_QUERY` | `true`, wenn das Backend nach `lat/lng/radiusKm` filtert | `true` |
@@ -94,7 +95,10 @@ VITE_GOOGLE_MAPS_MAP_ID=abc123def456
 
 - **Standort:** Google-Ortssuche (auf Deutschland beschränkt, Bayern bevorzugt), „Meinen Standort verwenden“ (Browser-Geolocation nach Einwilligungsdialog), Standard **Dachau**.
 - **Umkreis:** 5 / 10 / 20 / 30 / 50 / 100 km – als Kreis auf der Karte dargestellt.
-- **Meine Vereine:** Stern neben einem Verein merkt ihn (alle Mannschaften, nur in diesem Browser). Oben erscheinen die nächsten Spiele der gemerkten Vereine; der Schalter „Nur diese zeigen“ filtert Liste und Karte.
+- **Übersichtliche Bedienung:** Oben nur Standort (antippen öffnet die Ortssuche) und Kategorie-Chips; alle weiteren Filter und die Umgebungserkundung liegen in einem eigenen Bereich („Filter“), der am Handy von unten und am Desktop von rechts hereinfährt. Die Erkundung erscheint in der Liste nur, wenn etwas zu tun ist.
+- **Spieldetails:** Ein Tipp auf ein Spiel (oder „Details“ auf der Karte) öffnet Route, Karte, Kalender, Teilen, bfv.de sowie – bei BFV-Daten – die Ligatabelle (beide Teams hervorgehoben), die Form der letzten 5 Spiele (S/U/N) und die nächsten Spiele beider Mannschaften.
+- **Wetter zum Anpfiff:** Über Open-Meteo (kostenlos, ohne Schlüssel); gesendet werden nur die auf ~10 km gerundeten Koordinaten der Spielorte. Abschaltbar mit `VITE_WEATHER=false`.
+- **Meine Vereine:** Stern neben einem Verein merkt ihn (alle Mannschaften, nur in diesem Browser). Oben erscheinen die nächsten Spiele und die Ergebnisse der letzten 8 Tage der gemerkten Vereine; der Schalter „Nur diese zeigen“ filtert Liste und Karte.
 - **Als Nächstes:** Die drei Spiele, die als Nächstes anfangen – laufende Spiele sind mit „läuft“ markiert und bleiben bis ca. 110 Minuten nach Anpfiff sichtbar.
 - **Offline-Modus:** Ein Service Worker (`public/sw.js`) speichert die App-Dateien; ohne Netz startet die App mit den zuletzt geladenen Spielen und einem Hinweisbalken. BFV- und Google-Anfragen laufen nie über diesen Speicher.
 - **Spiel teilen & Kalender:** Jedes Spiel lässt sich per Teilen-Menü (WhatsApp, Signal …) verschicken oder als Termin (.ics) in den Kalender übernehmen.

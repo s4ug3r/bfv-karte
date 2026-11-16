@@ -69,6 +69,17 @@ function parseCategory(value: string | undefined): MatchCategory | undefined {
   return undefined;
 }
 
+/** Optionale BFV-Kennungen (z. B. aus einem exportierten BFV-Datensatz). */
+function parseBfvRefs(v: unknown): Match['bfv'] {
+  if (!isObj(v)) return undefined;
+  const id = /^[0-9A-Za-z-]{8,60}$/;
+  const pick = (k: string) => (typeof v[k] === 'string' && id.test(v[k] as string) ? (v[k] as string) : undefined);
+  const refs = { matchId: pick('matchId'), compoundId: pick('compoundId'), homeTeamId: pick('homeTeamId'), awayTeamId: pick('awayTeamId') };
+  return refs.compoundId && refs.homeTeamId && refs.awayTeamId
+    ? { matchId: refs.matchId ?? '', compoundId: refs.compoundId, homeTeamId: refs.homeTeamId, awayTeamId: refs.awayTeamId }
+    : undefined;
+}
+
 /** Normalisiert einen einzelnen Datensatz. Gibt null zurück, wenn Pflichtfelder fehlen. */
 export function normalizeMatch(input: unknown): Match | null {
   if (!isObj(input)) return null;
@@ -104,6 +115,7 @@ export function normalizeMatch(input: unknown): Match | null {
     ageClass,
     venue,
     detailUrl: safeHttpUrl(raw.detailUrl ?? raw.url ?? raw.matchUrl ?? raw.link),
+    bfv: parseBfvRefs(raw.bfv),
   };
 }
 

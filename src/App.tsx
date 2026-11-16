@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { MatchDetails } from './components/details/MatchDetails';
 import { FilterPanel, TIME_PRESETS } from './components/filters/FilterPanel';
+import { QuickBar } from './components/filters/QuickBar';
 import { Footer } from './components/layout/Footer';
 import { Header } from './components/layout/Header';
 import { MobileNav, type MobileTab } from './components/layout/MobileNav';
+import { Sheet } from './components/layout/Sheet';
 import { GeolocationDialog } from './components/location/GeolocationDialog';
-import { LocationPanel } from './components/location/LocationPanel';
 import { MapPanel } from './components/map/MapPanel';
 import type { MapViewHandle } from './components/map/MapView';
 import { MatchList } from './components/results/MatchList';
@@ -15,8 +17,10 @@ import { FavoritesCard, UpcomingCard } from './components/results/Highlights';
 import { useFavorites } from './hooks/useFavorites';
 import { useNow } from './hooks/useNow';
 import { useOnline } from './hooks/useOnline';
-import { involvesFavorite } from './utils/favorites';
-import { IconFilter } from './components/ui';
+import { clubKey, involvesFavorite } from './utils/favorites';
+import { buttonPrimary, buttonSecondary } from './components/ui';
+import { useFavoriteResults } from './hooks/useFavoriteResults';
+import { useWeather } from './hooks/useWeather';
 import { config } from './config';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useGoogleMaps } from './hooks/useGoogleMaps';
@@ -72,8 +76,7 @@ const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
 
 export default function App() {
   // ─── Zustand ─────────────────────────────────────────────────────────────
-  const [storedFilters, setStoredFilters] = usePersistentState<Filters>('bfv.filters.v1', DEFAULT_FILTERS, sanitizeFilters);
-  const filters = storedFilters;
+  const [filters, setStoredFilters] = usePersistentState<Filters>('bfv.filters.v1', DEFAULT_FILTERS, sanitizeFilters);
   // Zuletzt gewählter Standort – nur in diesem Browser gespeichert, damit er beim nächsten Besuch da ist.
   const [location, setLocation] = usePersistentState<SelectedLocation>(
     'bfv.location.v1',
@@ -81,10 +84,12 @@ export default function App() {
     sanitizeLocation,
   );
   const [googleConsent, setGoogleConsent] = usePersistentState<boolean>('bfv.consent.googleMaps', false, (v) => v === true);
+  const [favTipDismissed, setFavTipDismissed] = usePersistentState<boolean>('bfv.favTip.dismissed', false, (v) => v === true);
   const [view, setView] = useState<ViewMode>('beides');
   // Handy: Liste oder Vollbild-Karte (untere Leiste); Desktop nutzt `view`.
   const [tab, setTab] = useState<MobileTab>('liste');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Erkundete Umgebung (Vereine/Mannschaften) – nur beim BFV-Provider relevant
@@ -92,8 +97,6 @@ export default function App() {
   const loadProgress = useLoadProgress();
 
   const mapRef = useRef<MapViewHandle>(null);
-  const mapSectionRef = useRef<HTMLElement>(null);
-  const filterToggleRef = useRef<HTMLButtonElement>(null);
 
   const maps = useGoogleMaps(googleConsent);
   const googleReady = maps.status === 'ready';
@@ -103,6 +106,7 @@ export default function App() {
   const favorites = useFavorites();
   const online = useOnline();
   const now = useNow();
+
   // "Nur meine Vereine" wirkt auf Liste, Karte und Zähler
   const shown = useMemo(
     () => (filters.favoritesOnly ? result.matches.filter((m) => involvesFavorite(m, favorites.keys)) : result.matches),
@@ -112,6 +116,13 @@ export default function App() {
   // Bei "Nur meine Vereine" zeigt der Vereine-Kasten schon die nächsten Spiele
   const upcoming = shown.length > 3 && !filters.favoritesOnly ? shown.filter(notOver).slice(0, 3) : [];
   const favoriteMatches = result.inArea.filter((m) => notOver(m) && involvesFavorite(m, favorites.keys)).slice(0, 3);
+  const favoriteResults = useFavoriteResults(area.index, result.inArea, favorites.keys, now);
+  const weatherFor = useWeather(shown, online && config.weatherEnabled);
+  const detailMatch = useMemo(
+    () => (detailId ? result.inArea.find((m) => m.id === detailId) ?? null : null),
+    [detailId, result.inArea],
+  );
+
   const areaCovered = isAreaCovered(area.index, location, filters.radiusKm);
   const clubsNearby = useMemo(
     () => clubsInRadius(area.index, location, filters.radiusKm).length,
@@ -119,6 +130,8 @@ export default function App() {
   );
   // Noch nichts erkundet in diesem Umkreis → Hinweis statt leerer Liste
   const needsDiscovery = usesBfvSources && clubsNearby === 0;
+  // Erkundungs-Kasten nur zeigen, wenn etwas zu tun ist – sonst steckt er in den Filtern
+  const areaNeedsAttention = usesBfvSources && (!areaCovered || area.running || !!area.error);
 
   // Neue Gegend ohne bekannte Vereine → Erkundung automatisch starten (einmal je Ort und Umkreis),
   // damit niemand einen Vereins-Link heraussuchen muss
@@ -145,35 +158,30 @@ export default function App() {
 
   const showOnMap = useCallback(
     (id: string) => {
+      setDetailId(null);
       setActiveId(id);
       const desktop = isDesktop();
       const wasHidden = desktop ? view === 'liste' : tab !== 'karte';
       if (desktop && wasHidden) setView('beides');
       if (!desktop) setTab('karte');
       // Kurz warten, bis die (evtl. eben eingeblendete) Karte ihr Layout hat
-      window.setTimeout(() => mapRef.current?.focusMatch(id), wasHidden ? 150 : 0);
+      window.setTimeout(() => mapRef.current?.focusMatch(id), wasHidden ? 200 : 50);
     },
     [view, tab],
   );
 
+  const openDetails = useCallback((id: string) => {
+    setActiveId(id);
+    setDetailId(id);
+  }, []);
+
   const changeTab = (t: MobileTab) => {
-    if (t === tab && t === 'liste' && !filtersOpen) {
+    if (t === tab && t === 'liste') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     setTab(t);
-    setFiltersOpen(false);
     if (t === 'liste') window.scrollTo({ top: 0 });
-  };
-
-  const openFilters = () => {
-    if (tab === 'liste' && filtersOpen) {
-      setFiltersOpen(false);
-      return;
-    }
-    setTab('liste');
-    setFiltersOpen(true);
-    window.setTimeout(() => filterToggleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
 
   const extraAgeClasses = useMemo(
@@ -181,30 +189,27 @@ export default function App() {
     [result.inArea],
   );
 
-  const userFilterCount =
-    (filters.category !== 'alle' ? 1 : 0) +
-    (filters.classFilter ? 1 : 0) +
-    (filters.search.trim() ? 1 : 0) +
-    (filters.favoritesOnly ? 1 : 0);
+  /** Filter außer der Kategorie (die steht als Chips sichtbar über der Liste) */
+  const extraFilterCount = (filters.classFilter ? 1 : 0) + (filters.search.trim() ? 1 : 0) + (filters.favoritesOnly ? 1 : 0);
+  const userFilterCount = extraFilterCount + (filters.category !== 'alle' ? 1 : 0);
+  const timeLabel = TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label.replace('…', '') ?? '';
 
-  /** Spiel aus "Als Nächstes"/"Meine Vereine" in der Liste anspringen (Desktop: auch auf der Karte). */
-  const selectMatch = (id: string) => {
-    setActiveId(id);
-    document.getElementById(`match-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (isDesktop() && view !== 'liste') mapRef.current?.focusMatch(id);
-  };
+  const resetFilters = () => updateFilters({ category: 'alle', classFilter: '', search: '', favoritesOnly: false });
 
   const highlights = (
-    <div className="mb-4 space-y-3">
-      <UpcomingCard matches={upcoming} now={now} onSelect={selectMatch} />
+    <div className="mb-5 space-y-3">
+      <UpcomingCard matches={upcoming} now={now} onSelect={openDetails} />
       <FavoritesCard
         favorites={favorites.list}
         matches={favoriteMatches}
+        results={favoriteResults.results}
         onlyFavorites={filters.favoritesOnly}
         now={now}
+        tipDismissed={favTipDismissed}
+        onDismissTip={() => setFavTipDismissed(true)}
         onToggleOnly={() => updateFilters({ favoritesOnly: !filters.favoritesOnly })}
         onRemove={favorites.remove}
-        onSelect={selectMatch}
+        onSelect={openDetails}
       />
     </div>
   );
@@ -214,11 +219,7 @@ export default function App() {
   const nextRadius = RADIUS_OPTIONS.find((r) => r > filters.radiusKm);
   if (nextRadius) suggestions.push({ label: `Umkreis auf ${nextRadius} km erweitern`, onClick: () => updateFilters({ radiusKm: nextRadius }) });
   if (filters.timePreset !== '30') suggestions.push({ label: 'Nächste 30 Tage anzeigen', onClick: () => updateFilters({ timePreset: '30' }) });
-  if (userFilterCount > 0)
-    suggestions.push({
-      label: 'Filter zurücksetzen',
-      onClick: () => updateFilters({ category: 'alle', classFilter: '', search: '', favoritesOnly: false }),
-    });
+  if (userFilterCount > 0) suggestions.push({ label: 'Filter zurücksetzen', onClick: resetFilters });
 
   // ─── Ergebnisbereich ─────────────────────────────────────────────────────
   let results: ReactNode;
@@ -233,7 +234,7 @@ export default function App() {
             ? 'Tippe oben auf „Umgebung erkunden“. Die App findet dann selbst alle Vereine im Umkreis und zeigt ihre Spiele – ganz ohne Eingabe, und nur einmal nötig.'
             : 'Aktiviere Google Maps. Danach findet die App selbst alle Vereine im Umkreis und zeigt ihre Spiele – ganz ohne Eingabe.'
         }
-        suggestions={[]}
+        suggestions={googleReady || googleConsent ? [] : [{ label: 'Google Maps laden', onClick: () => setGoogleConsent(true) }]}
       />
     );
   } else if (result.emptyRange) {
@@ -311,20 +312,35 @@ export default function App() {
         {highlights}
         <MatchList
           matches={shown}
-          origin={location}
-          mapAvailable={googleReady}
           activeId={activeId}
           favoriteKeys={favorites.keys}
+          weatherFor={weatherFor}
           onToggleFavorite={favorites.toggle}
-          onShowOnMap={showOnMap}
+          onOpen={openDetails}
         />
       </>
     );
   }
 
-  const listHidden = view === 'karte';
   const mapHidden = view === 'liste';
+  const listHidden = view === 'karte';
   const onMapTab = tab === 'karte';
+
+  const areaPanel = (
+    <AreaPanel
+      index={area.index}
+      radiusKm={filters.radiusKm}
+      covered={areaCovered}
+      googleReady={googleReady}
+      running={area.running}
+      progress={area.progress}
+      error={area.error}
+      onStart={(seed) => void area.start(location, filters.radiusKm, seed)}
+      onCancel={area.cancel}
+      onReset={area.reset}
+      onEnableGoogle={() => setGoogleConsent(true)}
+    />
+  );
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
@@ -339,102 +355,62 @@ export default function App() {
       )}
 
       <main
-        className={`flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:grid lg:pb-0 lg:min-h-0 ${
-          mapHidden ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(380px,460px)_1fr]'
+        className={`flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:grid lg:min-h-0 lg:pb-0 ${
+          mapHidden ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(400px,480px)_1fr]'
         }`}
       >
-        {/* Mobil: "contents" lässt Steuerung, Karte und Liste per order sortieren; Desktop: scrollbare Seitenleiste */}
-        <aside className="contents lg:block lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200">
-          <div
-            className={`order-1 space-y-4 p-4 sm:p-5 ${onMapTab ? 'hidden lg:block' : ''} ${
-              mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''
-            }`}
-          >
-
-            <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-              <LocationPanel
-                location={location}
-                googleReady={googleReady}
-                locating={geo.locating}
-                geoError={geo.error}
-                onSelect={setLocation}
-                onUseMyLocation={() => setGeoDialogOpen(true)}
-                onResetLocation={() => setLocation(config.defaultLocation)}
-                onDismissGeoError={geo.clearError}
-              />
-
-              <button
-                ref={filterToggleRef}
-                type="button"
-                className={`${filtersOpen ? '' : 'mb-0'} flex min-h-11 w-full scroll-mt-20 items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 lg:hidden`}
-                aria-expanded={filtersOpen}
-                aria-controls="filter-panel"
-                onClick={() => setFiltersOpen((o) => !o)}
-              >
-                <span className="flex items-center gap-2">
-                  <IconFilter /> Filter: {filters.radiusKm} km, {TIME_PRESETS.find((p) => p.value === filters.timePreset)?.label}
-                  {userFilterCount > 0 && (
-                    <span className="rounded-full bg-bfv-700 px-1.5 text-[11px] text-white">{userFilterCount}</span>
-                  )}
-                </span>
-                <span aria-hidden className={`transition ${filtersOpen ? 'rotate-180' : ''}`}>▾</span>
-              </button>
-              <div id="filter-panel" className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
-                <FilterPanel
-                  filters={filters}
-                  counts={result.counts}
-                  extraAgeClasses={extraAgeClasses}
-                  onChange={updateFilters}
-                />
-              </div>
-            </div>
-
-            {usesBfvSources && (
-              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-                <AreaPanel
-                  index={area.index}
-                  radiusKm={filters.radiusKm}
-                  covered={areaCovered}
-                  googleReady={googleReady}
-                  running={area.running}
-                  progress={area.progress}
-                  error={area.error}
-                  onStart={(seed) => void area.start(location, filters.radiusKm, seed)}
-                  onCancel={area.cancel}
-                  onReset={area.reset}
-                  onEnableGoogle={() => setGoogleConsent(true)}
-                />
-              </div>
-            )}
-
-            <ResultBar
-              count={shown.length}
+        {/* Seitenleiste (Desktop) bzw. Listen-Tab (Handy) */}
+        <aside
+          className={`${onMapTab ? 'hidden' : 'block'} ${listHidden ? 'lg:hidden' : 'lg:block'} lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200`}
+        >
+          <div className={`px-4 pb-6 pt-4 sm:px-5 ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''}`}>
+            <QuickBar
+              location={location}
               radiusKm={filters.radiusKm}
-              loading={result.isLoading}
-              refreshing={result.isFetching && !result.isLoading}
-              view={view}
-              onViewChange={setView}
+              timeLabel={timeLabel}
+              category={filters.category}
+              counts={result.counts}
+              extraFilterCount={extraFilterCount}
+              googleReady={googleReady}
+              locating={geo.locating}
+              geoError={geo.error}
+              onCategory={(category) => updateFilters({ category })}
+              onOpenFilters={() => setFiltersOpen(true)}
+              onSelectPlace={setLocation}
+              onUseMyLocation={() => setGeoDialogOpen(true)}
+              onResetLocation={() => setLocation(config.defaultLocation)}
+              onDismissGeoError={geo.clearError}
             />
 
+            {areaNeedsAttention && (
+              <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">{areaPanel}</div>
+            )}
+
+            <div className="mb-3 mt-5">
+              <ResultBar
+                count={shown.length}
+                radiusKm={filters.radiusKm}
+                loading={result.isLoading}
+                refreshing={result.isFetching && !result.isLoading}
+                view={view}
+                onViewChange={setView}
+              />
+            </div>
+
             {result.unresolvedCount > 0 && !result.isLoading && (
-              <p className="rounded-xl bg-slate-200/60 px-3 py-2 text-xs text-slate-600">
+              <p className="mb-3 rounded-xl bg-slate-200/60 px-3 py-2 text-xs text-slate-600">
                 {result.unresolvedCount} {result.unresolvedCount === 1 ? 'Spiel konnte' : 'Spiele konnten'} nicht verortet
                 werden{googleReady ? '' : ' – aktiviere Google Maps, damit Adressen in Koordinaten umgewandelt werden'}.
               </p>
             )}
             {result.error && result.matches.length > 0 && online && (
-              <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p role="alert" className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 Aktualisierung fehlgeschlagen – es werden zwischengespeicherte Spiele angezeigt.
               </p>
             )}
-          </div>
 
-          <div
-            className={`order-3 px-4 pb-6 sm:px-5 ${onMapTab ? 'hidden' : 'block'} ${listHidden ? 'lg:hidden' : 'lg:block'} ${mapHidden ? 'lg:mx-auto lg:max-w-3xl' : ''} ${
-              result.isPlaceholder ? 'opacity-60 transition-opacity' : ''
-            }`}
-          >
-            {results}
+            <div className={result.isPlaceholder ? 'opacity-60 transition-opacity' : ''}>{results}</div>
+
             <Footer
               sourceLabel={result.provider.label}
               googleConsent={googleConsent}
@@ -447,10 +423,9 @@ export default function App() {
         </aside>
 
         <section
-          ref={mapSectionRef}
           aria-label="Karte"
-          className={`order-2 ${onMapTab ? 'block' : 'hidden'} ${mapHidden ? 'lg:hidden' : 'lg:block'}
-            fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] sm:top-[calc(4rem+env(safe-area-inset-top))] bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20
+          className={`${onMapTab ? 'block' : 'hidden'} ${mapHidden ? 'lg:hidden' : 'lg:block'}
+            fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] top-[calc(3.5rem+env(safe-area-inset-top))] z-20 sm:top-[calc(4rem+env(safe-area-inset-top))]
             lg:static lg:inset-auto lg:z-auto lg:min-h-0`}
         >
           <div className="relative h-full overflow-hidden">
@@ -463,6 +438,7 @@ export default function App() {
               matches={shown}
               onConsent={() => setGoogleConsent(true)}
               onRetry={maps.retry}
+              onOpenDetails={openDetails}
             />
             {/* Handy: kurze Zusammenfassung über der Karte */}
             {googleReady && (
@@ -492,8 +468,71 @@ export default function App() {
         filterCount={userFilterCount}
         filtersOpen={filtersOpen}
         onTabChange={changeTab}
-        onFilters={openFilters}
+        onFilters={() => setFiltersOpen(true)}
       />
+
+      {/* Filter: am Handy von unten, am Desktop rechts */}
+      <Sheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filter"
+        footer={
+          <div className="flex gap-2">
+            <button type="button" className={`${buttonSecondary} min-h-12 flex-1`} onClick={resetFilters} disabled={userFilterCount === 0}>
+              Zurücksetzen
+            </button>
+            <button type="button" className={`${buttonPrimary} min-h-12 flex-[2]`} onClick={() => setFiltersOpen(false)}>
+              {result.isLoading ? 'Fertig' : `${shown.length} ${shown.length === 1 ? 'Spiel' : 'Spiele'} anzeigen`}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <FilterPanel
+              filters={filters}
+              counts={result.counts}
+              extraAgeClasses={extraAgeClasses}
+              onChange={updateFilters}
+              hideCategory
+            />
+          </div>
+          {favorites.list.length > 0 && (
+            <label className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white px-4 ring-1 ring-slate-200">
+              <span className="text-sm font-semibold text-slate-700">Nur meine Vereine</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-bfv-700"
+                checked={filters.favoritesOnly}
+                onChange={(e) => updateFilters({ favoritesOnly: e.target.checked })}
+              />
+            </label>
+          )}
+          {usesBfvSources && <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">{areaPanel}</div>}
+        </div>
+      </Sheet>
+
+      {/* Spiel-Details */}
+      <Sheet
+        open={!!detailMatch}
+        onClose={() => setDetailId(null)}
+        title="Spieldetails"
+        ariaLabel={detailMatch ? `Details: ${detailMatch.homeTeam} gegen ${detailMatch.awayTeam}` : undefined}
+      >
+        {detailMatch && (
+          <MatchDetails
+            match={detailMatch}
+            origin={location}
+            now={now}
+            weather={weatherFor(detailMatch)}
+            mapAvailable={googleReady}
+            favHome={favorites.keys.has(clubKey(detailMatch.homeTeam))}
+            favAway={favorites.keys.has(clubKey(detailMatch.awayTeam))}
+            onToggleFavorite={favorites.toggle}
+            onShowOnMap={showOnMap}
+          />
+        )}
+      </Sheet>
 
       <GeolocationDialog
         open={geoDialogOpen}

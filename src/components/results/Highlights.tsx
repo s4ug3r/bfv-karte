@@ -2,7 +2,9 @@ import type { MatchWithDistance } from '../../types/match';
 import { CATEGORY_COLOR } from '../../utils/classify';
 import { formatRelativeKickoff } from '../../utils/date';
 import { formatDistance } from '../../utils/distance';
+import type { FavoriteResult } from '../../hooks/useFavoriteResults';
 import type { FavoriteClub } from '../../utils/favorites';
+import { formatDayMonth, formatWeekdayShort } from '../../utils/date';
 import { IconStar, IconX } from '../ui';
 
 interface UpcomingProps {
@@ -32,7 +34,12 @@ interface FavoritesProps {
   favorites: FavoriteClub[];
   /** Nächste Spiele der gemerkten Vereine (im Umkreis und Zeitraum, unabhängig von anderen Filtern) */
   matches: MatchWithDistance[];
+  /** Ergebnisse der letzten Tage (nur BFV-Daten) */
+  results: FavoriteResult[];
   onlyFavorites: boolean;
+  /** Tipp "Stern antippen" ausgeblendet */
+  tipDismissed: boolean;
+  onDismissTip: () => void;
   now: Date;
   onToggleOnly: () => void;
   onRemove: (key: string) => void;
@@ -42,13 +49,22 @@ interface FavoritesProps {
 /** "Meine Vereine": gemerkte Vereine, deren nächste Spiele und der Schalter "Nur meine Vereine". */
 export function FavoritesCard(p: FavoritesProps) {
   if (p.favorites.length === 0) {
+    if (p.tipDismissed) return null;
     return (
-      <p className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200">
+      <p className="flex items-center gap-2 rounded-2xl bg-amber-50 py-2 pl-3 pr-1 text-xs text-amber-900 ring-1 ring-amber-200">
         <IconStar width={16} height={16} className="shrink-0 text-amber-500" />
-        <span>
-          <strong className="font-semibold text-slate-800">Tipp:</strong> Tippe bei einem Spiel auf den Stern neben
-          dem Verein – dann findest du ihn hier unter „Meine Vereine“.
+        <span className="flex-1">
+          <strong className="font-semibold">Tipp:</strong> Tippe auf den Stern neben einem Verein – dann siehst du hier
+          seine nächsten Spiele und Ergebnisse.
         </span>
+        <button
+          type="button"
+          onClick={p.onDismissTip}
+          aria-label="Tipp ausblenden"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-amber-700 hover:bg-amber-100"
+        >
+          <IconX width={14} height={14} />
+        </button>
       </p>
     );
   }
@@ -100,10 +116,38 @@ export function FavoritesCard(p: FavoritesProps) {
         ))}
       </ul>
 
+      <h3 className="mt-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Nächste Spiele</h3>
       {p.matches.length > 0 ? (
         <MatchRows matches={p.matches} now={p.now} onSelect={p.onSelect} />
       ) : (
-        <p className="px-1 pt-1 text-xs text-slate-500">Keine Spiele deiner Vereine im gewählten Umkreis und Zeitraum.</p>
+        <p className="px-1 py-1.5 text-xs text-slate-500">Keine Spiele im gewählten Umkreis und Zeitraum.</p>
+      )}
+
+      {p.results.length > 0 && (
+        <>
+          <h3 className="mt-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Letzte Ergebnisse</h3>
+          <ul className="divide-y divide-slate-100">
+            {p.results.map((r) => (
+              <li key={r.matchId} className="flex items-center gap-3 px-1 py-2">
+                <span className="w-[4.75rem] shrink-0 text-xs font-semibold tabular-nums text-slate-500">
+                  {formatWeekdayShort(r.kickoff)} {formatDayMonth(r.kickoff)}
+                </span>
+                <span className="min-w-0 flex-1 text-sm text-slate-800">
+                  <span className="block truncate">{r.homeTeam}</span>
+                  <span className="block truncate text-slate-500">{r.awayTeam}</span>
+                </span>
+                <span
+                  className={`shrink-0 rounded-lg px-2 py-1 text-sm font-bold tabular-nums text-white ${
+                    r.outcome === 'S' ? 'bg-green-600' : r.outcome === 'N' ? 'bg-red-500' : 'bg-slate-400'
+                  }`}
+                  title={r.outcome === 'S' ? 'Sieg' : r.outcome === 'N' ? 'Niederlage' : 'Unentschieden'}
+                >
+                  {r.score}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
